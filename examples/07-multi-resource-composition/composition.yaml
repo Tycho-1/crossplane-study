@@ -1,0 +1,125 @@
+# One XR -> multiple composed resources: S3 Bucket, DynamoDB Table, IAM Policy
+#
+# HOW TO ADD A NEW RESOURCE - 3 steps across 3 files:
+#
+#   xrd.yaml       STEP 1 - Add a new field under spec.properties (e.g. myNewResourceName: string)
+#                           and optionally to the required list.
+#
+#   composition.yaml  STEP 2 - Add a new entry to the resources list below:
+#                       - name: my-new-resource          # logical name (used by Crossplane internally)
+#                         base:
+#                           apiVersion: <group>/<version> # CRD apiVersion from the provider
+#                           kind: <Kind>                  # CRD kind from the provider
+#                           spec:
+#                             forProvider:
+#                               region: us-east-2         # static defaults go here
+#                         patches:
+#                           - type: FromCompositeFieldPath
+#                             fromFieldPath: spec.myNewResourceName   # field from xrd.yaml
+#                             toFieldPath: metadata.name
+#                             policy:
+#                               fromFieldPath: Required
+#
+#   xr.yaml        STEP 3 - Add the value for the new field:
+#                       myNewResourceName: my-platform-new-resource
+#
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xplatform-bucket
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XPlatform
+  mode: Pipeline
+  pipeline:
+    - step: create-resources
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+
+          # --- Resource 1: S3 Bucket ---
+          - name: bucket
+            base:
+              apiVersion: s3.aws.m.upbound.io/v1beta1
+              kind: Bucket
+              spec:
+                forProvider:
+                  region: us-east-2
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.region
+                toFieldPath: spec.forProvider.region
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.storageName
+                toFieldPath: metadata.name
+                policy:
+                  fromFieldPath: Required
+
+          # --- Resource 2: DynamoDB Table (e.g. Terraform state-lock table) ---
+          - name: dynamodb-table
+            base:
+              apiVersion: dynamodb.aws.m.upbound.io/v1beta1
+              kind: Table
+              spec:
+                forProvider:
+                  region: us-east-2
+                  billingMode: PAY_PER_REQUEST
+                  hashKey: LockID
+                  attribute:
+                    - name: LockID
+                      type: S
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.region
+                toFieldPath: spec.forProvider.region
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.tableName
+                toFieldPath: metadata.name
+                policy:
+                  fromFieldPath: Required
+
+          # --- Resource 3: IAM Policy ---
+          - name: iam-policy
+            base:
+              apiVersion: iam.aws.m.upbound.io/v1beta1
+              kind: Policy
+              spec:
+                forProvider:
+                  description: "S3 read/write access for the composed bucket"
+                  # In a real setup use function-go-templating to inject the exact bucket ARN.
+                  policy: |
+                    {
+                      "Version": "2012-10-17",
+                      "Statement": [
+                        {
+                          "Effect": "Allow",
+                          "Action": ["s3:PutObject","s3:GetObject","s3:DeleteObject"],
+                          "Resource": "arn:aws:s3:::*"
+                        }
+                      ]
+                    }
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.iamPolicyName
+                toFieldPath: metadata.name
+                policy:
+                  fromFieldPath: Required
+
+          # --- STEP 2: Add your new resource here, following the pattern above ---
+          # - name: my-new-resource
+          #   base:
+          #     apiVersion: <group>/<version>
+          #     kind: <Kind>
+          #     spec:
+          #       forProvider:
+          #         region: us-east-2
+          #   patches:
+          #     - type: FromCompositeFieldPath
+          #       fromFieldPath: spec.myNewResourceName
+          #       toFieldPath: metadata.name
+          #       policy:
+          #         fromFieldPath: Required

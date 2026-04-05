@@ -1,0 +1,24 @@
+# Example EKS cluster using the configuration-aws-eks Composition.
+# Apply this only after the Configuration is installed and HEALTHY (see configuration-aws-eks-install.yaml).
+#
+# This single resource composes: VPC/subnets (if the function creates them), IAM roles,
+# EKS Cluster, and NodeGroup. No separate cluster/nodegroup/IAM manifests needed.
+#
+# Customize: id, region, version, nodes.count, nodes.instanceType, and optionally iam.principalArn.
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: EKS
+metadata:
+  name: tiho-eks-from-crossplane
+  namespace: default
+spec:
+  parameters:
+    id: prod-cluster-network
+    region: eu-central-1
+    providerConfigName: default
+    version: "1.34"
+    accessConfig:
+      authenticationMode: API_AND_CONFIG_MAP
+      bootstrapClusterCreatorAdminPermissions: true
+    nodes:
+      count: 1
+      instanceType: t3.small

@@ -1,0 +1,14 @@
+# Namespaced ProviderConfig: use in MRs that live in the same namespace
+# Apply to a specific namespace, e.g. kubectl apply -f provider-config.yaml -n team-a
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  namespace: default
+  name: my-aws-config
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-secret
+      key: creds

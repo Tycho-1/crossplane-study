@@ -1,0 +1,11 @@
+# Shared environment ID — single source of truth for VPC ↔ EKS linking.
+# Change this value to customize your cluster/network identity.
+# Both Network and EKS use this id: Network labels subnets with it, EKS selects subnets by it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: env-config
+  namespace: default
+data:
+  environmentId: "prod-cluster-01"
+  region: "eu-central-1"

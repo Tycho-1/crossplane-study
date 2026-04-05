@@ -1,0 +1,26 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local env and secrets (do not commit real credentials)
+.env
+.env.*
+*.pem
+kubeconfig
+*.kubeconfig
+aws-credentials.ini
+**/aws-credentials.ini
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Go (if you build locally in-tree)
+bin/

@@ -1,0 +1,10 @@
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: crossplane-bucket-test
+  namespace: default
+  # Use `name` (not only generateName) so: kubectl delete -f bucket-test.yaml works.
+spec:
+  forProvider:
+    region: eu-central-1
+

@@ -1,0 +1,50 @@
+# Kustomize overlay: VPC + EKS with shared environmentId.
+# Single source of truth: env-config.data.environmentId links Network and EKS.
+#
+# Apply: kubectl apply -k configuration-aws-eks/  (from repo root)
+# Or:   kubectl apply -k .  (from this folder)
+#
+# Prerequisites: (1) Secret aws-secret (key creds) in crossplane-system.
+# (2) provider-family-aws first (CRDs), then cluster + namespaced ProviderConfig (Network needs namespaced default).
+# See VPC-AND-EKS-WITH-KUSTOMIZE.md for full explanation.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - provider-family-aws.yaml
+  - cluster-provider-config.yaml
+  - provider-config-default.yaml
+  - configuration-aws-network-install.yaml
+  - configuration-aws-eks-install.yaml
+  - kustomize/env-config.yaml
+  - kustomize/network-xr.yaml
+  - kustomize/eks-xr.yaml
+
+# Replace PLACEHOLDER_ID and PLACEHOLDER_REGION in Network and EKS from env-config
+replacements:
+  - source:
+      kind: ConfigMap
+      name: env-config
+      fieldPath: data.environmentId
+    targets:
+      - select:
+          kind: Network
+        fieldPaths:
+          - spec.parameters.id
+      - select:
+          kind: EKS
+        fieldPaths:
+          - spec.parameters.id
+  - source:
+      kind: ConfigMap
+      name: env-config
+      fieldPath: data.region
+    targets:
+      - select:
+          kind: Network
+        fieldPaths:
+          - spec.parameters.region
+      - select:
+          kind: EKS
+        fieldPaths:
+          - spec.parameters.region

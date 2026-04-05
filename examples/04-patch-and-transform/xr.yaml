@@ -1,0 +1,8 @@
+apiVersion: example.org/v1alpha1
+kind: XBucket
+metadata:
+  namespace: default
+  name: pt-demo-bucket
+spec:
+  region: eu-west-1
+  environment: dev

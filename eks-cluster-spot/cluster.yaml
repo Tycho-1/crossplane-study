@@ -1,0 +1,25 @@
+# EKS Cluster in eu-central-1
+# References the IAM Role from iam-cluster-role.yaml (roleArnRef). Replace subnetIds with your values.
+# Prerequisites: provider-aws-eks, provider-aws-iam, iam-cluster-role applied, ClusterProviderConfig, VPC subnets.
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-eks-cluster
+spec:
+  forProvider:
+    region: eu-central-1
+    name: my-eks-cluster
+    version: "1.28"
+    # Reference to the IAM Role created by iam-cluster-role.yaml (Role is in crossplane-system)
+    roleArnRef:
+      name: eks-cluster-role
+      namespace: crossplane-system
+    vpcConfig:
+      # At least 2 subnets in different AZs in eu-central-1
+      subnetIds:
+        - subnet-xxxxxxxxxxxxxxxxx
+        - subnet-yyyyyyyyyyyyyyyyy
+  # Optional: use a specific ProviderConfig
+  # providerConfigRef:
+  #   name: default
+  #   kind: ClusterProviderConfig

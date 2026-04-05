@@ -1,0 +1,14 @@
+# Simple S3 Bucket - v2 namespaced managed resource
+# Requires: Crossplane, provider-aws-s3, ClusterProviderConfig "default" with AWS creds
+apiVersion: s3.aws.m.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  namespace: default
+  name: crossplane-bucket-demo
+spec:
+  forProvider:
+    region: eu-central-1
+  # Uses default ClusterProviderConfig if not specified:
+  # providerConfigRef:
+  #   name: default
+  #   kind: ClusterProviderConfig

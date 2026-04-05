@@ -1,0 +1,6 @@
+apiVersion: example.upbound.io/v1alpha1
+kind: Example
+metadata:
+  name: example
+  namespace: default
+spec: {}

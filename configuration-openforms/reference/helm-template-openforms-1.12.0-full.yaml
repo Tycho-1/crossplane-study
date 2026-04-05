@@ -1,0 +1,1070 @@
+---
+# Source: openforms/charts/redis/templates/networkpolicy.yaml
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: demo-redis
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: demo
+      app.kubernetes.io/name: redis
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - {}
+  ingress:
+    # Allow inbound connections
+    - ports:
+        - port: 6379
+---
+# Source: openforms/charts/redis/templates/master/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: demo-redis-master
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+    app.kubernetes.io/component: master
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: demo
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/component: master
+---
+# Source: openforms/charts/redis/templates/master/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: false
+metadata:
+  name: demo-redis-master
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+---
+# Source: openforms/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+automountServiceAccountToken: true
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+---
+# Source: openforms/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+stringData:
+  DB_PASSWORD: "pass"
+  SECRET_KEY: "testsecret"
+  FLOWER_BASIC_AUTH:  ""
+---
+# Source: openforms/charts/redis/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-redis-configuration
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+data:
+  redis.conf: |-
+    # User-supplied common configuration:
+    # Enable AOF https://redis.io/topics/persistence#append-only-file
+    appendonly yes
+    # Disable RDB persistence, AOF persistence already enabled.
+    save ""
+    # End of common configuration
+  master.conf: |-
+    dir /data
+    # User-supplied master configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of master configuration
+  replica.conf: |-
+    dir /data
+    # User-supplied replica configuration:
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # End of replica configuration
+  users.acl: |-
+---
+# Source: openforms/charts/redis/templates/health-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-redis-health
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+data:
+  ping_readiness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_local.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    [[ -n "$REDIS_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h localhost \
+        -p $REDIS_PORT \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ] && [ "$responseFirstWord" != "MASTERDOWN" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    if [ "$response" != "PONG" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_liveness_master.sh: |-
+    #!/bin/bash
+
+    [[ -f $REDIS_MASTER_PASSWORD_FILE ]] && export REDIS_MASTER_PASSWORD="$(< "${REDIS_MASTER_PASSWORD_FILE}")"
+    [[ -n "$REDIS_MASTER_PASSWORD" ]] && export REDISCLI_AUTH="$REDIS_MASTER_PASSWORD"
+    response=$(
+      timeout -s 15 $1 \
+      redis-cli \
+        -h $REDIS_MASTER_HOST \
+        -p $REDIS_MASTER_PORT_NUMBER \
+        ping
+    )
+    if [ "$?" -eq "124" ]; then
+      echo "Timed out"
+      exit 1
+    fi
+    responseFirstWord=$(echo $response | head -n1 | awk '{print $1;}')
+    if [ "$response" != "PONG" ] && [ "$responseFirstWord" != "LOADING" ]; then
+      echo "$response"
+      exit 1
+    fi
+  ping_readiness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_readiness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_readiness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+  ping_liveness_local_and_master.sh: |-
+    script_dir="$(dirname "$0")"
+    exit_status=0
+    "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
+    "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
+    exit $exit_status
+---
+# Source: openforms/charts/redis/templates/scripts-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-redis-scripts
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+data:
+  start-master.sh: |
+    #!/bin/bash
+
+    [[ -f $REDIS_PASSWORD_FILE ]] && export REDIS_PASSWORD="$(< "${REDIS_PASSWORD_FILE}")"
+    if [[ -f /opt/bitnami/redis/mounted-etc/master.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/master.conf /opt/bitnami/redis/etc/master.conf
+    fi
+    if [[ -f /opt/bitnami/redis/mounted-etc/redis.conf ]];then
+        cp /opt/bitnami/redis/mounted-etc/redis.conf /opt/bitnami/redis/etc/redis.conf
+    fi
+    if [[ -f /opt/bitnami/redis/mounted-etc/users.acl ]];then
+        cp /opt/bitnami/redis/mounted-etc/users.acl /opt/bitnami/redis/etc/users.acl
+    fi
+    ARGS=("--port" "${REDIS_PORT}")
+    ARGS+=("--protected-mode" "no")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/redis.conf")
+    ARGS+=("--include" "/opt/bitnami/redis/etc/master.conf")
+    exec redis-server "${ARGS[@]}"
+---
+# Source: openforms/templates/configmap-nginx.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-openforms-nginx
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-nginx
+data:
+  proxy: |
+    proxy_pass_header Server;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_connect_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_redirect off;
+    proxy_pass_request_headers on;
+    proxy_http_version 1.1;
+    proxy_pass http://demo-openforms.openforms:80;
+    proxy_set_header Host $http_host;
+
+  default.conf: |
+    # Rate limiting configuration - allow 1 request per second. 10m can track about 80000 clients.
+    limit_req_zone $binary_remote_addr zone=demo-openforms.openforms_discover:10m rate=1r/s;
+
+    
+
+    server {
+        listen 8080 default_server;
+        server_name  localhost;
+        server_tokens off;
+        client_max_body_size 10M;
+
+        gzip  on;
+        gzip_http_version 1.0;
+        gzip_comp_level 2;
+        gzip_min_length 1100;
+        gzip_buffers     4 8k;
+        gzip_proxied any;
+        gzip_types
+
+          # text/html is always compressed by HttpGzipModule
+          text/css
+          text/javascript
+          text/xml
+          text/plain
+          text/x-component
+          application/javascript
+          application/json
+          application/xml
+          application/rss+xml
+          font/truetype
+          font/opentype
+          application/vnd.ms-fontobject
+          image/svg+xml;
+
+        gzip_static on;
+
+        gzip_proxied        expired no-cache no-store private auth;
+        gzip_disable        "MSIE [1-6]\.";
+        gzip_vary           on;
+
+        location / {
+            include conf.d/proxy;
+        }
+
+        location /_health/ {
+            access_log /var/log/nginx/access.log;
+            error_log /var/log/nginx/error.log error;
+            return 200 'OK';
+        }
+
+      location /private-media {
+          internal;
+          alias /app/private_media/;
+      }
+
+      location /media {
+          alias /app/media/;
+      }
+
+      location = /api/v1/formio/fileupload {
+        client_max_body_size 50M;
+        include conf.d/proxy;
+      }
+
+      location = /admin/forms/form/import/ {
+        client_max_body_size 20M;
+        include conf.d/proxy;
+      }
+
+      # Serve collected static files directly from Nginx
+      location /static/ {
+          expires max;
+          add_header Access-Control-Allow-Origin *;
+          alias /srv/static/;
+          include /etc/nginx/mime.types;
+          types {
+            application/javascript mjs;
+          }
+      }
+
+      # Metadata endpoints - rate limit them to prevent abuse, as they generate XML
+      # on the fly.
+      location /discovery/ {
+          # rate limit at 1 request/s, but allow (delayed) burst of 5 requests
+          limit_req zone=demo-openforms.openforms_discover burst=5;
+          include conf.d/proxy;
+      }
+
+    }
+---
+# Source: openforms/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+data:
+  DJANGO_SETTINGS_MODULE: "openforms.conf.docker"
+  BASE_URL: "https://forms.example.com"
+  ENVIRONMENT: demo-openforms
+  CORS_ALLOW_ALL_ORIGINS: "False"
+  
+  
+  
+  
+  CSP_REPORTS_SAVE: "False"
+  CSP_EXTRA_DEFAULT_SRC: ""
+  CSP_EXTRA_IMG_SRC: ""
+  CSP_REPORT_ONLY: "False"
+  CSP_REPORTS_LOG: "True"
+  CSP_REPORT_PERCENTAGE: "1.0"
+  ALLOWED_HOSTS: "demo-openforms,demo-openforms.openforms,"
+  CACHE_DEFAULT: "demo-redis-master.openforms:6379/0"
+  CACHE_AXES: "demo-redis-master.openforms:6379/0"
+  CACHE_PORTALOCKER: "demo-redis-master.openforms:6379/0"
+  CELERY_BROKER_URL: "redis://demo-redis-master.openforms:6379/1"
+  CELERY_RESULT_BACKEND: "redis://demo-redis-master.openforms:6379/1"
+  
+  
+  CELERY_LOGLEVEL:  "DEBUG"
+  DB_NAME: "openforms"
+  DB_HOST: "postgres.default.svc"
+  DB_USER: "of"
+  DB_PORT: "5432"
+  PGSSLMODE: "prefer"
+  DEBUG: "False"
+  NUM_PROXIES: "1"
+  IS_HTTPS: "True"
+  FLOWER_URL_PREFIX: ""
+  EMAIL_HOST: "localhost"
+  EMAIL_PORT: "25"
+  CELERY_WORKER_CONCURRENCY: "4"
+  MAX_FILE_UPLOAD_SIZE: "50M"
+  ENABLE_THROTTLING: "True"
+  ESCAPE_REGISTRATION_OUTPUT: "False"
+  USE_LEGACY_OIDC_ENDPOINTS: "False"
+  USE_LEGACY_DIGID_EH_OIDC_ENDPOINTS: "False"
+  USE_LEGACY_ORG_OIDC_ENDPOINTS: "False"
+  SHOW_ENVIRONMENT: "False"
+  # Static files configuration
+  STATIC_ROOT_VOLUME: "/srv/static/"  
+  OTEL_SDK_DISABLED: "True"
+---
+# Source: openforms/templates/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: 
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Source: openforms/charts/redis/templates/headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-redis-headless
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+  selector:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: redis
+---
+# Source: openforms/charts/redis/templates/master/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-redis-master
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+    app.kubernetes.io/component: master
+spec:
+  type: ClusterIP
+  internalTrafficPolicy: Cluster
+  sessionAffinity: None
+  ports:
+    - name: tcp-redis
+      port: 6379
+      targetPort: redis
+      nodePort: null
+  selector:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: master
+---
+# Source: openforms/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: demo-openforms
+---
+# Source: openforms/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-openforms-nginx
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-nginx
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app.kubernetes.io/name: demo-openforms-nginx
+---
+# Source: openforms/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-openforms
+  labels:
+    
+    app.kubernetes.io/version: "3.3.9"
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-openforms
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 06239ccd578ce0ab8ea8f7294afea262bcc0b17e50dd7e15f647a1b3002d36f8
+        checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+      labels:
+        app.kubernetes.io/name: demo-openforms
+    spec:
+      serviceAccountName: demo-openforms
+      securityContext:
+        fsGroup: 1000               
+      containers:
+        - name: openforms
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "openformulieren/open-forms:3.3.9"
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: demo-openforms
+            - configMapRef:
+                name: demo-openforms
+          env:
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /admin/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "demo-openforms"
+            failureThreshold: 30
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /admin/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "demo-openforms"
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /admin/
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: "demo-openforms"
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            {}
+          volumeMounts:
+            - name: media
+              mountPath: /app/private_media
+              subPath: openforms/private_media
+            - name: media
+              mountPath: /app/media
+              subPath: openforms/media
+            - name: media
+              mountPath: "/srv/static/"
+              subPath: openforms/static
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: demo-openforms
+        - name: configuration
+          configMap:
+            name: demo-openforms-configuration
+            defaultMode: 0755
+---
+# Source: openforms/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-openforms-beat
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-beat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-openforms-beat
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 06239ccd578ce0ab8ea8f7294afea262bcc0b17e50dd7e15f647a1b3002d36f8
+        checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+      labels:
+        app.kubernetes.io/name: demo-openforms-beat
+    spec:
+      serviceAccountName: demo-openforms
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: demo-openforms-beat
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "openformulieren/open-forms:3.3.9"
+          imagePullPolicy: IfNotPresent
+          env:
+          envFrom:
+            - secretRef:
+                name: demo-openforms
+            - configMapRef:
+                name: demo-openforms
+          resources:
+            {}
+          command:
+            - /celery_beat.sh
+          volumeMounts:
+            - name: media
+              mountPath: /app/private_media
+              subPath: openforms/private_media
+            - name: media
+              mountPath: /app/media
+              subPath: openforms/media
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: demo-openforms
+---
+# Source: openforms/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-openforms-worker
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-openforms-worker
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 06239ccd578ce0ab8ea8f7294afea262bcc0b17e50dd7e15f647a1b3002d36f8
+        checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+      labels:
+        app.kubernetes.io/name: demo-openforms-worker
+    spec:
+      serviceAccountName: demo-openforms
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: demo-openforms-worker
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "openformulieren/open-forms:3.3.9"
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: demo-openforms
+            - configMapRef:
+                name: demo-openforms
+          env:
+          resources:
+            {}
+          command:
+            - /celery_worker.sh
+          volumeMounts:
+            - name: media
+              mountPath: /app/private_media
+              subPath: openforms/private_media
+            - name: media
+              mountPath: /app/media
+              subPath: openforms/media
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: demo-openforms
+---
+# Source: openforms/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-openforms-nginx
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-openforms-nginx
+  template:
+    metadata:
+      annotations:
+        checksum/configmap-nginx: 2584d25357027f11feab48145e9b79669e0c880eabed7c3caa8462da3129fdc9
+      labels:
+        app.kubernetes.io/name: demo-openforms-nginx
+    spec:
+      serviceAccountName: demo-openforms
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: nginx
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 101
+          image: "nginxinc/nginx-unprivileged:stable"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /_health/
+              port: http
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            {}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/
+            - name: media
+              mountPath: /app/private_media
+              subPath: openforms/private_media
+            - name: media
+              mountPath: /app/media
+              subPath: openforms/media
+            - name: media
+              mountPath: "/srv/static/"
+              subPath: openforms/static
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: demo-openforms
+        - name: nginx-config
+          configMap:
+            name: demo-openforms-nginx
+---
+# Source: openforms/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-openforms-flower
+  labels:
+    helm.sh/chart: openforms-1.12.0
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/name: demo-openforms-flower
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: demo-openforms-flower
+  template:
+    metadata:
+      annotations:
+        checksum/configmap: 06239ccd578ce0ab8ea8f7294afea262bcc0b17e50dd7e15f647a1b3002d36f8
+        checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+      labels:
+        app.kubernetes.io/name: demo-openforms-flower
+    spec:
+      serviceAccountName: demo-openforms
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: demo-openforms-flower
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "openformulieren/open-forms:3.3.9"
+          imagePullPolicy: IfNotPresent
+          command: ["/celery_flower.sh"]
+          resources:
+            {}
+          envFrom:
+            - secretRef:
+                name: demo-openforms
+            - configMapRef:
+                name: demo-openforms
+          env:
+          ports:
+            - name: http
+              containerPort: 5555
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: 5555
+            failureThreshold: 6
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 5555
+            failureThreshold: 6
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          volumeMounts:
+      volumes:
+---
+# Source: openforms/charts/redis/templates/master/application.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: demo-redis-master
+  namespace: "openforms"
+  labels:
+    app.kubernetes.io/instance: demo
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/version: 8.2.0
+    helm.sh/chart: redis-22.0.1
+    app.kubernetes.io/component: master
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: demo
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/component: master
+  serviceName: demo-redis-headless
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: demo
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/version: 8.2.0
+        helm.sh/chart: redis-22.0.1
+        app.kubernetes.io/component: master
+      annotations:
+        checksum/configmap: 2a9ab4a5432825504d910f022638674ce88eaefe9f9f595ad8bc107377d104fb
+        checksum/health: aff24913d801436ea469d8d374b2ddb3ec4c43ee7ab24663d5f8ff1a1b6991a9
+        checksum/scripts: bdec350b84a1ace7cc118db113a21c9f160bde3425b07714e1c0c1da722621cf
+        checksum/secret: 44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a
+    spec:
+      
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: Always
+        supplementalGroups: []
+        sysctls: []
+      serviceAccountName: demo-redis-master
+      automountServiceAccountToken: false
+      affinity:
+        podAffinity:
+          
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: demo
+                    app.kubernetes.io/name: redis
+                    app.kubernetes.io/component: master
+                topologyKey: kubernetes.io/hostname
+              weight: 1
+        nodeAffinity:
+          
+      enableServiceLinks: true
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: redis
+          image: docker.io/redis:8.0
+          imagePullPolicy: "IfNotPresent"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 1001
+            runAsNonRoot: true
+            runAsUser: 1001
+            seLinuxOptions: {}
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - /bin/bash
+          args:
+            - -ec
+            - /opt/bitnami/scripts/start-scripts/start-master.sh
+          env:
+            - name: BITNAMI_DEBUG
+              value: "false"
+            - name: REDIS_REPLICATION_MODE
+              value: master
+            - name: ALLOW_EMPTY_PASSWORD
+              value: "yes"
+            - name: REDIS_TLS_ENABLED
+              value: "no"
+            - name: REDIS_PORT
+              value: "6379"
+          ports:
+            - name: redis
+              containerPort: 6379
+          livenessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            # One second longer than command timeout should prevent generation of zombie processes.
+            timeoutSeconds: 6
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - "/health/ping_liveness_local.sh 5"
+          readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 2
+            successThreshold: 1
+            failureThreshold: 5
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - "/health/ping_readiness_local.sh 1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: start-scripts
+              mountPath: /opt/bitnami/scripts/start-scripts
+            - name: health
+              mountPath: /health
+            - name: redis-data
+              mountPath: /data
+            - name: config
+              mountPath: /opt/bitnami/redis/mounted-etc
+            - name: empty-dir
+              mountPath: /opt/bitnami/redis/etc/
+              subPath: app-conf-dir
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+      volumes:
+        - name: start-scripts
+          configMap:
+            name: demo-redis-scripts
+            defaultMode: 0755
+        - name: health
+          configMap:
+            name: demo-redis-health
+            defaultMode: 0755
+        - name: config
+          configMap:
+            name: demo-redis-configuration
+        - name: empty-dir
+          emptyDir: {}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: redis-data
+        labels:
+          app.kubernetes.io/instance: demo
+          app.kubernetes.io/name: redis
+          app.kubernetes.io/component: master
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: "8Gi"
+---
+# Source: openforms/templates/hpa.yaml
+---

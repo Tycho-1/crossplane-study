@@ -1,0 +1,35 @@
+# Example Network (VPC + subnets) using configuration-aws-network.
+# Apply only after configuration-aws-network-install.yaml is HEALTHY.
+#
+# The `id` parameter is critical: EKS selects subnets by label
+# networks.aws.platform.upbound.io/network-id = <id>.
+# Use the SAME id in both Network and EKS XRs (see kustomize/ for parameterized example).
+#
+# When used with kustomize: id is replaced by env-config.environmentId.
+#
+# AWS console "subnet name" = Name tag — not set here. See NETWORK-TROUBLESHOOTING.md
+# section "AWS console names for VPCs and subnets" for the full explanation.
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: Network
+metadata:
+  name: prod-cluster-network
+  namespace: default
+spec:
+  parameters:
+    id: prod-cluster-network
+    region: eu-central-1
+    providerConfigName: default
+    vpcCidrBlock: 192.168.0.0/16
+    subnets:
+      - availabilityZone: eu-central-1a
+        type: public
+        cidrBlock: 192.168.0.0/18
+      - availabilityZone: eu-central-1b
+        type: public
+        cidrBlock: 192.168.64.0/18
+      - availabilityZone: eu-central-1a
+        type: private
+        cidrBlock: 192.168.128.0/18
+      - availabilityZone: eu-central-1b
+        type: private
+        cidrBlock: 192.168.192.0/18

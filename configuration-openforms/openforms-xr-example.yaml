@@ -1,0 +1,23 @@
+# Example OpenForms claim. metadata.name MUST be "demo" — it matches the Helm release name
+# baked into the embedded Composition bases (see README).
+apiVersion: openforms.example.org/v1alpha1
+kind: OpenForms
+metadata:
+  name: demo
+  namespace: default
+spec:
+  parameters:
+    namespace: openforms
+    settingsSecretKey: REPLACE-WITH-SECRET
+    settingsBaseUrl: https://openforms.example.com
+    settingsDatabaseHost: postgres.example.svc.cluster.local
+    settingsDatabaseName: openforms
+    settingsDatabaseUsername: openforms
+    settingsDatabasePassword: REPLACE-ME
+    settingsCeleryBrokerUrl: redis://redis.external.svc:6379/0
+    settingsCeleryResultBackend: redis://redis.external.svc:6379/1
+    settingsNumProxies: "1"
+    replicaCount: 2
+    workerReplicaCount: 2
+    persistenceSize: 1Gi
+    persistenceStorageClassName: ""

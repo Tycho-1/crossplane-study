@@ -1,0 +1,41 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xplatforms.example.org
+spec:
+  scope: Namespaced
+  group: example.org
+  names:
+    kind: XPlatform
+    plural: xplatforms
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                region:
+                  type: string
+                  default: us-east-2
+                storageName:
+                  type: string
+                tableName:
+                  type: string
+                iamPolicyName:
+                  type: string
+                # STEP 1 - To add a new resource, declare its name field here.
+                # Example:
+                #   myNewResourceName:
+                #     type: string
+              required:
+                - region
+                - storageName
+                - tableName
+                - iamPolicyName
+                # STEP 1 (cont.) - Also add the new field to required if it must always be set.
+                # - myNewResourceName

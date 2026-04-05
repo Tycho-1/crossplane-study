@@ -1,0 +1,19 @@
+# EKS cluster — id is replaced by Kustomize from env-config.
+# EKS finds subnets by label: networks.aws.platform.upbound.io/network-id = <id>
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: EKS
+metadata:
+  name: prod-cluster-01  # typically same as environmentId
+  namespace: default
+spec:
+  parameters:
+    id: "PLACEHOLDER_ID"  # replaced by env-config.data.environmentId — must match Network!
+    region: "PLACEHOLDER_REGION"  # replaced by env-config.data.region
+    providerConfigName: default
+    version: "1.34"
+    accessConfig:
+      authenticationMode: API_AND_CONFIG_MAP
+      bootstrapClusterCreatorAdminPermissions: true
+    nodes:
+      count: 2
+      instanceType: t3.small

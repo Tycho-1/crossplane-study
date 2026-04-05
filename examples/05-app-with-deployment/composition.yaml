@@ -1,0 +1,87 @@
+# Composition: XApp -> Deployment + Service + ConfigMap (core K8s resources)
+# v2: compose any resource; Crossplane needs RBAC for deployments, services, configmaps
+# Pipeline: step 1 = P&T (Deployment + Service), step 2 = P&T (ConfigMap), step 3 = auto-ready (so XR READY becomes True)
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xapp-deployment-service
+spec:
+  compositeTypeRef:
+    apiVersion: example.org/v1alpha1
+    kind: XApp
+  mode: Pipeline
+  pipeline:
+    - step: create-deployment-and-service
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: deployment
+            base:
+              apiVersion: apps/v1
+              kind: Deployment
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels: {}
+                template:
+                  metadata:
+                    labels: {}
+                  spec:
+                    containers:
+                      - name: app
+                        image: nginx
+                        ports:
+                          - containerPort: 80
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.replicas
+                toFieldPath: spec.replicas
+              - type: FromCompositeFieldPath
+                fromFieldPath: spec.image
+                toFieldPath: spec.template.spec.containers[0].image
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.selector.matchLabels[app]
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.template.metadata.labels[app]
+          - name: service
+            base:
+              apiVersion: v1
+              kind: Service
+              spec:
+                ports:
+                  - port: 80
+                    targetPort: 80
+                selector: {}
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: spec.selector[app]
+    - step: create-configmap
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: configmap
+            base:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: app-config
+              data:
+                app: "true"
+                managed-by: "crossplane"
+            patches:
+              - type: FromCompositeFieldPath
+                fromFieldPath: metadata.name
+                toFieldPath: metadata.name
+    - step: mark-ready
+      functionRef:
+        name: function-auto-ready
+      # No input: function checks Deployment (readyReplicas), Service, ConfigMap and sets XR ready when all are ready

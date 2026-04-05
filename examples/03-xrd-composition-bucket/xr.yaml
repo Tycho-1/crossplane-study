@@ -1,0 +1,8 @@
+# Composite Resource instance: request one bucket via custom API
+apiVersion: example.org/v1alpha1
+kind: XBucket
+metadata:
+  namespace: default
+  name: my-bucket
+spec:
+  region: eu-central-1

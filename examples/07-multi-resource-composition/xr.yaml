@@ -1,0 +1,13 @@
+apiVersion: example.org/v1alpha1
+kind: XPlatform
+metadata:
+  namespace: default
+  name: my-platform
+spec:
+  region: eu-central-1
+  storageName: my-platform-storage
+  tableName: my-platform-lock-table
+  iamPolicyName: my-platform-s3-policy
+  # STEP 3 - Provide the value for your new resource's name field declared in xrd.yaml.
+  # Example:
+  #   myNewResourceName: my-platform-new-resource

@@ -1,0 +1,28 @@
+# EKS cluster IAM role (trust eks.amazonaws.com + AmazonEKSClusterPolicy)
+# Required by the EKS Cluster. Apply before cluster.yaml.
+# Uses iam.aws.m.upbound.io so the Role is managed by the provider that uses aws.m.upbound.io ClusterProviderConfig.
+apiVersion: iam.aws.m.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: eks-cluster-role
+  namespace: crossplane-system   # same namespace as provider so it gets reconciled
+spec:
+  providerConfigRef:
+    kind: ClusterProviderConfig
+    name: default
+  forProvider:
+    # Role name in AWS is taken from metadata.name (eks-cluster-role); no forProvider.name in this provider
+    description: IAM role for EKS cluster control plane
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": { "Service": "eks.amazonaws.com" },
+            "Action": "sts:AssumeRole"
+          }
+        ]
+      }
+    managedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy

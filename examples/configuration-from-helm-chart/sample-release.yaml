@@ -1,0 +1,27 @@
+# Example: Helm Release as a Crossplane managed resource (provider-helm).
+# Requires: provider-helm installed, ProviderConfig named below, target cluster reachable.
+#
+# `Release` is cluster-scoped (no metadata.namespace). Helm installs into
+# `spec.forProvider.namespace` on the target cluster.
+#
+# This is the resource your Composition would usually OUTPUT from a higher-level XR.
+# Verify chart version on Artifact Hub; adjust repository/name/version as needed.
+#
+# API: kubectl explain release.helm.crossplane.io --recursive
+---
+apiVersion: helm.crossplane.io/v1beta1
+kind: Release
+metadata:
+  name: sample-chart-release
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    chart:
+      name: nginx
+      repository: https://charts.bitnami.com/bitnami
+      version: "15.0.0"
+    namespace: helm-sample
+    # values:
+    #   service:
+    #     type: ClusterIP

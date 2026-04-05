@@ -1,0 +1,27 @@
+# Full EKS XR example with optional parameters.
+# Apply only after the Configuration is installed and HEALTHY.
+#
+# This example includes: version, accessConfig, iam.principalArn (cluster admin).
+# Replace iam.principalArn with your IAM user/role ARN to get cluster admin access.
+#
+# See XR-PARAMETERS.md for the full parameter reference.
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: EKS
+metadata:
+  name: my-eks-full-example
+  namespace: default
+spec:
+  parameters:
+    id: prod-cluster-network
+    region: eu-central-1
+    providerConfigName: default
+    version: "1.34"
+    accessConfig:
+      authenticationMode: API_AND_CONFIG_MAP
+      bootstrapClusterCreatorAdminPermissions: true
+    # Optional: IAM principal to connect as ClusterAdmin (creates access entry)
+    # iam:
+    #   principalArn: arn:aws:iam::123456789012:user/my-admin
+    nodes:
+      count: 3
+      instanceType: t3.medium

@@ -1,0 +1,10 @@
+# Optional: install provider-aws-eks (required for cluster.yaml and nodegroup-spot.yaml)
+# Apply once: kubectl apply -f provider-eks.yaml
+# Wait until: kubectl get providers -> provider-aws-eks INSTALLED=True HEALTHY=True
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-eks
+spec:
+  # Use Upbound registry to avoid ghcr.io DENIED when pulling via xpkg.crossplane.io
+  package: xpkg.upbound.io/upbound/provider-aws-eks:v1.13.1

@@ -1,0 +1,31 @@
+# EKS Managed Node Group with SPOT instances in eu-central-1
+# References the IAM Role from iam-node-role.yaml (nodeRoleArnRef). Replace subnetIds; clusterNameRef must match Cluster.
+# Apply after the Cluster is READY.
+apiVersion: eks.aws.upbound.io/v1beta1
+kind: NodeGroup
+metadata:
+  name: my-eks-spot-nodegroup
+spec:
+  forProvider:
+    region: eu-central-1
+    # Must match the Cluster metadata.name
+    clusterNameRef:
+      name: my-eks-cluster
+    # Reference to the IAM Role created by iam-node-role.yaml (Role is in crossplane-system)
+    nodeRoleArnRef:
+      name: eks-node-role
+      namespace: crossplane-system
+    subnetIds:
+      - subnet-xxxxxxxxxxxxxxxxx
+      - subnet-yyyyyyyyyyyyyyyyy
+    # Spot instances
+    capacityType: SPOT
+    # Multiple instance types recommended for Spot (diversity = fewer interruptions)
+    instanceTypes:
+      - t3.medium
+      - t3a.medium
+    scalingConfig:
+      minSize: 1
+      maxSize: 5
+      desiredSize: 2
+  # providerConfigRef optional (default ClusterProviderConfig used if omitted)

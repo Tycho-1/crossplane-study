@@ -1,0 +1,30 @@
+# XApp: custom API that composes Deployment + Service (v2 - any K8s resource)
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xapps.example.org
+spec:
+  scope: Namespaced
+  group: example.org
+  names:
+    kind: XApp
+    plural: xapps
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                image:
+                  type: string
+                  default: nginx
+                replicas:
+                  type: integer
+                  default: 1
+              required:
+                - image

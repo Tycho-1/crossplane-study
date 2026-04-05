@@ -1,0 +1,642 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: openforms-kubernetes
+spec:
+  compositeTypeRef:
+    apiVersion: openforms.example.org/v1alpha1
+    kind: OpenForms
+  mode: Pipeline
+  pipeline:
+  - step: openforms-resources
+    functionRef:
+      name: function-patch-and-transform
+    input:
+      apiVersion: pt.fn.crossplane.io/v1beta1
+      kind: Resources
+      resources:
+      - name: pt-serviceaccount-demo-openforms
+        base:
+          apiVersion: v1
+          kind: ServiceAccount
+          automountServiceAccountToken: true
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-secret-demo-openforms
+        base:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+          stringData:
+            DB_PASSWORD: pass
+            SECRET_KEY: testsecret
+            FLOWER_BASIC_AUTH: ''
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsSecretKey
+          toFieldPath: stringData.SECRET_KEY
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsDatabasePassword
+          toFieldPath: stringData.DB_PASSWORD
+      - name: pt-configmap-demo-openforms-nginx
+        base:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: demo-openforms-nginx
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-nginx
+          data:
+            proxy: 'proxy_pass_header Server;
+
+              proxy_set_header X-Real-IP $remote_addr;
+
+              proxy_connect_timeout 300s;
+
+              proxy_read_timeout 300s;
+
+              proxy_redirect off;
+
+              proxy_pass_request_headers on;
+
+              proxy_http_version 1.1;
+
+              proxy_pass http://demo-openforms.openforms:80;
+
+              proxy_set_header Host $http_host;
+
+              '
+            default.conf: "# Rate limiting configuration - allow 1 request per second. 10m can track about\
+              \ 80000 clients.\nlimit_req_zone $binary_remote_addr zone=demo-openforms.openforms_discover:10m\
+              \ rate=1r/s;\n\n\n\nserver {\n    listen 8080 default_server;\n    server_name  localhost;\n\
+              \    server_tokens off;\n    client_max_body_size 10M;\n\n    gzip  on;\n    gzip_http_version\
+              \ 1.0;\n    gzip_comp_level 2;\n    gzip_min_length 1100;\n    gzip_buffers     4 8k;\n\
+              \    gzip_proxied any;\n    gzip_types\n\n      # text/html is always compressed by HttpGzipModule\n\
+              \      text/css\n      text/javascript\n      text/xml\n      text/plain\n      text/x-component\n\
+              \      application/javascript\n      application/json\n      application/xml\n      application/rss+xml\n\
+              \      font/truetype\n      font/opentype\n      application/vnd.ms-fontobject\n      image/svg+xml;\n\
+              \n    gzip_static on;\n\n    gzip_proxied        expired no-cache no-store private auth;\n\
+              \    gzip_disable        \"MSIE [1-6]\\.\";\n    gzip_vary           on;\n\n    location\
+              \ / {\n        include conf.d/proxy;\n    }\n\n    location /_health/ {\n        access_log\
+              \ /var/log/nginx/access.log;\n        error_log /var/log/nginx/error.log error;\n      \
+              \  return 200 'OK';\n    }\n\n  location /private-media {\n      internal;\n      alias\
+              \ /app/private_media/;\n  }\n\n  location /media {\n      alias /app/media/;\n  }\n\n  location\
+              \ = /api/v1/formio/fileupload {\n    client_max_body_size 50M;\n    include conf.d/proxy;\n\
+              \  }\n\n  location = /admin/forms/form/import/ {\n    client_max_body_size 20M;\n    include\
+              \ conf.d/proxy;\n  }\n\n  # Serve collected static files directly from Nginx\n  location\
+              \ /static/ {\n      expires max;\n      add_header Access-Control-Allow-Origin *;\n    \
+              \  alias /srv/static/;\n      include /etc/nginx/mime.types;\n      types {\n        application/javascript\
+              \ mjs;\n      }\n  }\n\n  # Metadata endpoints - rate limit them to prevent abuse, as they\
+              \ generate XML\n  # on the fly.\n  location /discovery/ {\n      # rate limit at 1 request/s,\
+              \ but allow (delayed) burst of 5 requests\n      limit_req zone=demo-openforms.openforms_discover\
+              \ burst=5;\n      include conf.d/proxy;\n  }\n\n}"
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-configmap-demo-openforms
+        base:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+          data:
+            DJANGO_SETTINGS_MODULE: openforms.conf.docker
+            BASE_URL: https://forms.example.com
+            ENVIRONMENT: demo-openforms
+            CORS_ALLOW_ALL_ORIGINS: 'False'
+            CSP_REPORTS_SAVE: 'False'
+            CSP_EXTRA_DEFAULT_SRC: ''
+            CSP_EXTRA_IMG_SRC: ''
+            CSP_REPORT_ONLY: 'False'
+            CSP_REPORTS_LOG: 'True'
+            CSP_REPORT_PERCENTAGE: '1.0'
+            ALLOWED_HOSTS: demo-openforms,demo-openforms.openforms,
+            CACHE_DEFAULT: ''
+            CACHE_AXES: ''
+            CACHE_PORTALOCKER: ''
+            CELERY_BROKER_URL: redis://redis.external.svc:6379/0
+            CELERY_RESULT_BACKEND: ''
+            CELERY_LOGLEVEL: DEBUG
+            DB_NAME: openforms
+            DB_HOST: postgres.default.svc
+            DB_USER: of
+            DB_PORT: '5432'
+            PGSSLMODE: prefer
+            DEBUG: 'False'
+            NUM_PROXIES: '1'
+            IS_HTTPS: 'True'
+            FLOWER_URL_PREFIX: ''
+            EMAIL_HOST: localhost
+            EMAIL_PORT: '25'
+            CELERY_WORKER_CONCURRENCY: '4'
+            MAX_FILE_UPLOAD_SIZE: 50M
+            ENABLE_THROTTLING: 'True'
+            ESCAPE_REGISTRATION_OUTPUT: 'False'
+            USE_LEGACY_OIDC_ENDPOINTS: 'False'
+            USE_LEGACY_DIGID_EH_OIDC_ENDPOINTS: 'False'
+            USE_LEGACY_ORG_OIDC_ENDPOINTS: 'False'
+            SHOW_ENVIRONMENT: 'False'
+            STATIC_ROOT_VOLUME: /srv/static/
+            OTEL_SDK_DISABLED: 'True'
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsBaseUrl
+          toFieldPath: data.BASE_URL
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsDatabaseHost
+          toFieldPath: data.DB_HOST
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsDatabaseName
+          toFieldPath: data.DB_NAME
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsDatabaseUsername
+          toFieldPath: data.DB_USER
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsCeleryBrokerUrl
+          toFieldPath: data.CELERY_BROKER_URL
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsCeleryResultBackend
+          toFieldPath: data.CELERY_RESULT_BACKEND
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.settingsNumProxies
+          toFieldPath: data.NUM_PROXIES
+      - name: pt-persistentvolumeclaim-demo-openforms
+        base:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+          spec:
+            accessModes:
+            - ReadWriteMany
+            storageClassName: null
+            resources:
+              requests:
+                storage: 1Gi
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.persistenceSize
+          toFieldPath: spec.resources.requests.storage
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.persistenceStorageClassName
+          toFieldPath: spec.storageClassName
+      - name: pt-service-demo-openforms
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 80
+              targetPort: 8000
+              protocol: TCP
+              name: http
+            selector:
+              app.kubernetes.io/name: demo-openforms
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-service-demo-openforms-nginx
+        base:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: demo-openforms-nginx
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-nginx
+          spec:
+            type: ClusterIP
+            ports:
+            - port: 80
+              targetPort: 8080
+              name: http
+            selector:
+              app.kubernetes.io/name: demo-openforms-nginx
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-deployment-demo-openforms
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: demo-openforms
+            labels:
+              app.kubernetes.io/version: 3.3.9
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: demo-openforms
+            template:
+              metadata:
+                annotations:
+                  checksum/configmap: 8518a386c9fcd28529f533d34dc5235f961013e9563c3539d391fae9ab3f9bce
+                  checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+                labels:
+                  app.kubernetes.io/name: demo-openforms
+              spec:
+                serviceAccountName: demo-openforms
+                securityContext:
+                  fsGroup: 1000
+                containers:
+                - name: openforms
+                  securityContext:
+                    capabilities:
+                      drop:
+                      - ALL
+                    readOnlyRootFilesystem: false
+                    runAsNonRoot: true
+                    runAsUser: 1000
+                  image: openformulieren/open-forms:3.3.9
+                  imagePullPolicy: IfNotPresent
+                  envFrom:
+                  - secretRef:
+                      name: demo-openforms
+                  - configMapRef:
+                      name: demo-openforms
+                  env: null
+                  ports:
+                  - name: http
+                    containerPort: 8000
+                    protocol: TCP
+                  startupProbe:
+                    httpGet:
+                      path: /admin/
+                      port: http
+                      httpHeaders:
+                      - name: Host
+                        value: demo-openforms
+                    failureThreshold: 30
+                    initialDelaySeconds: 15
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  livenessProbe:
+                    httpGet:
+                      path: /admin/
+                      port: http
+                      httpHeaders:
+                      - name: Host
+                        value: demo-openforms
+                    failureThreshold: 6
+                    initialDelaySeconds: 60
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  readinessProbe:
+                    httpGet:
+                      path: /admin/
+                      port: http
+                      httpHeaders:
+                      - name: Host
+                        value: demo-openforms
+                    failureThreshold: 6
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  resources: {}
+                  volumeMounts:
+                  - name: media
+                    mountPath: /app/private_media
+                    subPath: openforms/private_media
+                  - name: media
+                    mountPath: /app/media
+                    subPath: openforms/media
+                  - name: media
+                    mountPath: /srv/static/
+                    subPath: openforms/static
+                volumes:
+                - name: media
+                  persistentVolumeClaim:
+                    claimName: demo-openforms
+                - name: configuration
+                  configMap:
+                    name: demo-openforms-configuration
+                    defaultMode: 493
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.replicaCount
+          toFieldPath: spec.replicas
+      - name: pt-deployment-demo-openforms-beat
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: demo-openforms-beat
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-beat
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: demo-openforms-beat
+            template:
+              metadata:
+                annotations:
+                  checksum/configmap: 8518a386c9fcd28529f533d34dc5235f961013e9563c3539d391fae9ab3f9bce
+                  checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+                labels:
+                  app.kubernetes.io/name: demo-openforms-beat
+              spec:
+                serviceAccountName: demo-openforms
+                securityContext:
+                  fsGroup: 1000
+                containers:
+                - name: demo-openforms-beat
+                  securityContext:
+                    capabilities:
+                      drop:
+                      - ALL
+                    readOnlyRootFilesystem: false
+                    runAsNonRoot: true
+                    runAsUser: 1000
+                  image: openformulieren/open-forms:3.3.9
+                  imagePullPolicy: IfNotPresent
+                  env: null
+                  envFrom:
+                  - secretRef:
+                      name: demo-openforms
+                  - configMapRef:
+                      name: demo-openforms
+                  resources: {}
+                  command:
+                  - /celery_beat.sh
+                  volumeMounts:
+                  - name: media
+                    mountPath: /app/private_media
+                    subPath: openforms/private_media
+                  - name: media
+                    mountPath: /app/media
+                    subPath: openforms/media
+                volumes:
+                - name: media
+                  persistentVolumeClaim:
+                    claimName: demo-openforms
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-deployment-demo-openforms-worker
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: demo-openforms-worker
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-worker
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: demo-openforms-worker
+            template:
+              metadata:
+                annotations:
+                  checksum/configmap: 8518a386c9fcd28529f533d34dc5235f961013e9563c3539d391fae9ab3f9bce
+                  checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+                labels:
+                  app.kubernetes.io/name: demo-openforms-worker
+              spec:
+                serviceAccountName: demo-openforms
+                securityContext:
+                  fsGroup: 1000
+                containers:
+                - name: demo-openforms-worker
+                  securityContext:
+                    capabilities:
+                      drop:
+                      - ALL
+                    readOnlyRootFilesystem: false
+                    runAsNonRoot: true
+                    runAsUser: 1000
+                  image: openformulieren/open-forms:3.3.9
+                  imagePullPolicy: IfNotPresent
+                  envFrom:
+                  - secretRef:
+                      name: demo-openforms
+                  - configMapRef:
+                      name: demo-openforms
+                  env: null
+                  resources: {}
+                  command:
+                  - /celery_worker.sh
+                  volumeMounts:
+                  - name: media
+                    mountPath: /app/private_media
+                    subPath: openforms/private_media
+                  - name: media
+                    mountPath: /app/media
+                    subPath: openforms/media
+                volumes:
+                - name: media
+                  persistentVolumeClaim:
+                    claimName: demo-openforms
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.workerReplicaCount
+          toFieldPath: spec.replicas
+      - name: pt-deployment-demo-openforms-nginx
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: demo-openforms-nginx
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-nginx
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: demo-openforms-nginx
+            template:
+              metadata:
+                annotations:
+                  checksum/configmap-nginx: 2584d25357027f11feab48145e9b79669e0c880eabed7c3caa8462da3129fdc9
+                labels:
+                  app.kubernetes.io/name: demo-openforms-nginx
+              spec:
+                serviceAccountName: demo-openforms
+                securityContext:
+                  fsGroup: 1000
+                containers:
+                - name: nginx
+                  securityContext:
+                    capabilities:
+                      drop:
+                      - ALL
+                    readOnlyRootFilesystem: false
+                    runAsNonRoot: true
+                    runAsUser: 101
+                  image: nginxinc/nginx-unprivileged:stable
+                  imagePullPolicy: IfNotPresent
+                  livenessProbe:
+                    httpGet:
+                      path: /_health/
+                      port: http
+                  ports:
+                  - name: http
+                    containerPort: 8080
+                  resources: {}
+                  volumeMounts:
+                  - name: nginx-config
+                    mountPath: /etc/nginx/conf.d/
+                  - name: media
+                    mountPath: /app/private_media
+                    subPath: openforms/private_media
+                  - name: media
+                    mountPath: /app/media
+                    subPath: openforms/media
+                  - name: media
+                    mountPath: /srv/static/
+                    subPath: openforms/static
+                volumes:
+                - name: media
+                  persistentVolumeClaim:
+                    claimName: demo-openforms
+                - name: nginx-config
+                  configMap:
+                    name: demo-openforms-nginx
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+      - name: pt-deployment-demo-openforms-flower
+        base:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: demo-openforms-flower
+            labels:
+              helm.sh/chart: openforms-1.12.0
+              app.kubernetes.io/instance: demo
+              app.kubernetes.io/name: demo-openforms-flower
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: demo-openforms-flower
+            template:
+              metadata:
+                annotations:
+                  checksum/configmap: 8518a386c9fcd28529f533d34dc5235f961013e9563c3539d391fae9ab3f9bce
+                  checksum/secret: b29b4b50ca9e9ebea34b2dc68948bf61b55c3f4293c1e52f7b47a10d522d0fb1
+                labels:
+                  app.kubernetes.io/name: demo-openforms-flower
+              spec:
+                serviceAccountName: demo-openforms
+                securityContext:
+                  fsGroup: 1000
+                containers:
+                - name: demo-openforms-flower
+                  securityContext:
+                    capabilities:
+                      drop:
+                      - ALL
+                    readOnlyRootFilesystem: false
+                    runAsNonRoot: true
+                    runAsUser: 1000
+                  image: openformulieren/open-forms:3.3.9
+                  imagePullPolicy: IfNotPresent
+                  command:
+                  - /celery_flower.sh
+                  resources: {}
+                  envFrom:
+                  - secretRef:
+                      name: demo-openforms
+                  - configMapRef:
+                      name: demo-openforms
+                  env: null
+                  ports:
+                  - name: http
+                    containerPort: 5555
+                    protocol: TCP
+                  livenessProbe:
+                    tcpSocket:
+                      port: 5555
+                    failureThreshold: 6
+                    initialDelaySeconds: 60
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  readinessProbe:
+                    tcpSocket:
+                      port: 5555
+                    failureThreshold: 6
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  volumeMounts: null
+                volumes: null
+        patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.parameters.namespace
+          toFieldPath: metadata.namespace
+  - step: mark-ready
+    functionRef:
+      name: function-auto-ready

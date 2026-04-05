@@ -1,0 +1,24 @@
+# provider-family-aws — AWS *family* package (shared layer).
+#
+# What this package does:
+#   - Installs the family framework: aws.m.upbound.io (ProviderConfig / ClusterProviderConfig APIs, etc.).
+#   - It does NOT by itself install every service; EC2 managed resources come from **provider-aws-ec2**.
+#
+# Why you might only apply this file and still see EC2:
+#   - **configuration-aws-network** declares dependsOn: provider-aws-ec2 → Crossplane installs
+#     provider-aws-ec2 automatically when you install that Configuration. So EC2 “comes from”
+#     the Configuration’s dependency graph, not from provider-family-aws embedding all services.
+#
+# If you are NOT using that Configuration, install EC2 explicitly, e.g.:
+#   xpkg.upbound.io/upbound/provider-aws-ec2:v2.5.0  (match family version when possible)
+#
+# Apply this BEFORE configuration-aws-network (or alongside provider-aws-ec2).
+# Wait until: kubectl get providers.pkg.crossplane.io → INSTALLED=True, HEALTHY=True
+#
+# You also need ClusterProviderConfig `default` (aws.m.upbound.io). See NETWORK-TROUBLESHOOTING.md.
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-family-aws
+spec:
+  package: xpkg.upbound.io/upbound/provider-family-aws:v2.5.0

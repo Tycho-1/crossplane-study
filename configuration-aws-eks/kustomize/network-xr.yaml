@@ -1,0 +1,26 @@
+# Network (VPC + subnets) — id is replaced by Kustomize from env-config.
+apiVersion: aws.platform.upbound.io/v1alpha1
+kind: Network
+metadata:
+  name: prod-cluster-01  # typically same as environmentId
+  namespace: default
+spec:
+  parameters:
+    id: "PLACEHOLDER_ID"  # replaced by env-config.data.environmentId
+    region: "PLACEHOLDER_REGION"  # replaced by env-config.data.region
+    providerConfigName: default
+    vpcCidrBlock: 192.168.0.0/16
+    managementPolicies: ["*"]
+    subnets:
+      - availabilityZone: eu-central-1a
+        type: public
+        cidrBlock: 192.168.0.0/18
+      - availabilityZone: eu-central-1b
+        type: public
+        cidrBlock: 192.168.64.0/18
+      - availabilityZone: eu-central-1a
+        type: private
+        cidrBlock: 192.168.128.0/18
+      - availabilityZone: eu-central-1b
+        type: private
+        cidrBlock: 192.168.192.0/18

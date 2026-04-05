@@ -1,0 +1,12 @@
+# Install the Upbound AWS EKS Configuration (v2.0.0).
+# This installs the XRD (EKS custom API), Composition, and embedded function.
+# After this is HEALTHY, create an EKS cluster by applying an EKS XR (see eks-xr-example.yaml).
+#
+# Prerequisites: Crossplane 2.0+ or UXP 2.0+; AWS credentials via a ProviderConfig named "default".
+# See README.md for details.
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: configuration-aws-eks
+spec:
+  package: xpkg.upbound.io/upbound/configuration-aws-eks:v2.0.0

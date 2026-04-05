@@ -1,0 +1,10 @@
+# Functions required by the Composition pipeline.
+# crossplane render pulls this image via Docker to run the pipeline locally.
+# Usage:
+#   crossplane render xr.yaml composition.yaml functions.yaml
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.10.1

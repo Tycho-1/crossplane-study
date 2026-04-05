@@ -1,0 +1,22 @@
+# Namespaced ProviderConfig — required for configuration-aws-network (and similar) compositions.
+#
+# The Network composition sets providerConfigRef.kind: ProviderConfig (not ClusterProviderConfig),
+# with name = spec.parameters.providerConfigName ("default" in network-xr-example.yaml).
+# So MRs need this object in the SAME namespace as the Network XR (here: default).
+#
+# You still want cluster-provider-config.yaml for cluster-wide defaults elsewhere; this file
+# fixes: ProviderConfig.aws.m.upbound.io "default" not found
+#
+# Prerequisite: provider-family-aws installed (CRD exists), Secret aws-secret in crossplane-system.
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+  namespace: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-secret
+      key: creds

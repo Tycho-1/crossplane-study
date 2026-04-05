@@ -1,0 +1,11 @@
+# Install this Configuration from an OCI registry after you build and push the package.
+# (Kept under examples/ so `crossplane xpkg build --package-root=..` does not parse this as package metadata.)
+#
+# Build (from configuration-openforms parent as package root):
+#   crossplane xpkg build --package-root=configuration-openforms -o configuration-openforms.xpkg
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: configuration-openforms
+spec:
+  package: YOUR_REGISTRY/configuration-openforms:v0.1.0

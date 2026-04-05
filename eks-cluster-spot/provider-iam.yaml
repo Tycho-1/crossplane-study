@@ -1,0 +1,10 @@
+# Optional: install provider-aws-iam (required for iam-cluster-role.yaml and iam-node-role.yaml)
+# Apply once: kubectl apply -f provider-iam.yaml
+# Wait until: kubectl get providers -> provider-aws-iam INSTALLED=True HEALTHY=True
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-aws-iam
+spec:
+  # Use Upbound registry (xpkg.upbound.io); xpkg.crossplane.io may resolve to ghcr.io and get DENIED
+  package: xpkg.upbound.io/upbound/provider-aws-iam:v2.2.0

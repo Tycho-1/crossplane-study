@@ -1,0 +1,33 @@
+# Enable debug logging on crossplane-contrib-provider-family-aws so you can see
+# reconcile attempts and errors. Apply this, then patch the Provider to use it.
+#
+# 1. Apply this file:
+#    kubectl apply -f debug-family-provider.yaml
+#
+# 2. Patch the Provider to use this runtime config (restarts the provider pod):
+#    kubectl patch provider crossplane-contrib-provider-family-aws --type=merge -p '{"spec":{"runtimeConfigRef":{"name":"debug-family-provider"}}}'
+#
+# 3. Wait for the new pod to be Ready, then check logs:
+#    kubectl logs -n crossplane-system -l pkg.crossplane.io/provider=crossplane-contrib-provider-family-aws --tail=200 -f
+#
+# 4. Trigger a reconcile on the Role (optional):
+#    kubectl annotate role.iam.aws.m.upbound.io eks-cluster-role -n crossplane-system crossplane.io/pause=false --overwrite
+#
+# 5. When done debugging, remove the runtimeConfigRef from the Provider so it goes back to default:
+#    kubectl patch provider crossplane-contrib-provider-family-aws --type=merge -p '{"spec":{"runtimeConfigRef":null}}'
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: debug-family-provider
+  namespace: crossplane-system
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --debug

@@ -1,0 +1,13 @@
+# ClusterProviderConfig: used by MRs in any namespace when they don't specify providerConfigRef
+# Secret "aws-secret" must exist in crossplane-system with key "creds" (e.g. AWS credentials file content)
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-secret
+      key: creds

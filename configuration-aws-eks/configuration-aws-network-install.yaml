@@ -1,0 +1,12 @@
+# Install the Upbound AWS Network Configuration (v2.0.0).
+# This installs the XRD (Network custom API), Composition, and embedded function.
+# Required for EKS: the EKS composition selects subnets by label (network-id).
+# Apply this BEFORE configuration-aws-eks-install.yaml when using the VPC+EKS example.
+#
+# Prerequisites: Crossplane 2.0+ or UXP 2.0+; AWS credentials via ProviderConfig "default".
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: configuration-aws-network
+spec:
+  package: xpkg.upbound.io/upbound/configuration-aws-network:v2.0.0

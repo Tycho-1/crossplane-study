@@ -1,0 +1,28 @@
+# ClusterProviderConfig: cluster-scoped default for MRs that omit providerConfigRef or use cluster defaults.
+#
+# NOTE: configuration-aws-network composes MRs with providerConfigRef.kind: ProviderConfig (namespaced).
+# Those MRs need provider-config-default.yaml (name default in the XR namespace), not only this object.
+# See provider-config-default.yaml and README "Credentials".
+#
+# APPLY ORDER (otherwise: "no matches for kind ClusterProviderConfig"):
+#   1) Install Crossplane.
+#   2) Install provider-family-aws (or another Upbound AWS provider that pulls in the family) and wait until
+#      CRDs exist — the ClusterProviderConfig type is defined by the family package, not by Crossplane core.
+#   3) Create Secret aws-secret (key creds) in crossplane-system.
+#   4) kubectl apply -f cluster-provider-config.yaml
+#
+# Verify CRD before apply:
+#   kubectl get crd clusterproviderconfigs.aws.m.upbound.io
+#
+# Same as ../examples/02-provider-config-aws/cluster-provider-config.yaml — kept here for the EKS/Network flow.
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-secret
+      key: creds

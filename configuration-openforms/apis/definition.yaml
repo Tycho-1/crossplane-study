@@ -1,0 +1,87 @@
+# OpenForms: Composite API — composed Kubernetes resources (no Helm at runtime).
+# Regenerated from maykinmedia/openforms chart v1.12.0; see ../README.md and ../reference/.
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: openforms.example.org
+spec:
+  scope: Namespaced
+  group: openforms.example.org
+  names:
+    kind: OpenForms
+    plural: openforms
+  defaultCompositionRef:
+    name: openforms-kubernetes
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  description: >-
+                    Values mapped into ConfigMap/Secret/Deployments. The Composition embeds
+                    manifests from chart v1.12.0 (external Redis). XR metadata.name MUST be "demo".
+                  properties:
+                    namespace:
+                      type: string
+                      description: >-
+                        Target namespace for all resources. Defaults to openforms. ConfigMap
+                        strings (ALLOWED_HOSTS, nginx proxy_pass) assume this namespace; if you
+                        change it, regenerate the reference and re-run scripts/generate_composition.py.
+                      default: openforms
+                    settingsSecretKey:
+                      type: string
+                    settingsBaseUrl:
+                      type: string
+                    settingsDatabaseHost:
+                      type: string
+                    settingsDatabaseName:
+                      type: string
+                    settingsDatabaseUsername:
+                      type: string
+                    settingsDatabasePassword:
+                      type: string
+                    settingsCeleryBrokerUrl:
+                      type: string
+                      description: External Redis URL for Celery broker (e.g. redis://redis.external.svc:6379/0).
+                    settingsCeleryResultBackend:
+                      type: string
+                      description: External Redis URL for Celery result backend.
+                    settingsNumProxies:
+                      type: string
+                      description: Passed to ConfigMap NUM_PROXIES (string). Use "2" when behind Ingress.
+                      default: "1"
+                    replicaCount:
+                      type: integer
+                      description: Web/uWSGI Deployment (demo-openforms) replicas.
+                      default: 2
+                    workerReplicaCount:
+                      type: integer
+                      description: Celery worker Deployment replicas.
+                      default: 2
+                    persistenceSize:
+                      type: string
+                      description: PVC size (e.g. 1Gi).
+                      default: 1Gi
+                    persistenceStorageClassName:
+                      type: string
+                      description: Optional storage class for the PVC; leave empty for cluster default.
+                      default: ""
+                  required:
+                    - settingsSecretKey
+                    - settingsBaseUrl
+                    - settingsDatabaseHost
+                    - settingsDatabaseName
+                    - settingsDatabaseUsername
+                    - settingsDatabasePassword
+                    - settingsCeleryBrokerUrl
+                    - settingsCeleryResultBackend
+              required:
+                - parameters

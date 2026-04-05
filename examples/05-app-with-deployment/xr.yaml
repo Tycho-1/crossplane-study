@@ -1,0 +1,8 @@
+apiVersion: example.org/v1alpha1
+kind: XApp
+metadata:
+  namespace: default
+  name: my-app
+spec:
+  image: nginx
+  replicas: 2

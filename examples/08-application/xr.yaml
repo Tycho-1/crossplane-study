@@ -1,0 +1,10 @@
+# Example: create a simple Kubernetes application via XApp
+apiVersion: example.org/v1alpha1
+kind: XApp
+metadata:
+  namespace: default
+  name: hello-app
+spec:
+  image: nginx
+  replicas: 2
+  port: 80

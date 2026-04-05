@@ -1,0 +1,31 @@
+# Composite Resource Definition: custom API "XBucket"
+# v2 API with scope: Namespaced
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: xbuckets.example.org
+spec:
+  scope: Namespaced
+  group: example.org
+  names:
+    kind: XBucket
+    plural: xbuckets
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                region:
+                  type: string
+                  default: us-east-2
+                bucketPrefix:
+                  type: string
+                  description: optional prefix for generated bucket name
+              required:
+                - region

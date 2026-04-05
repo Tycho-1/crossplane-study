@@ -1,0 +1,46 @@
+# Three public subnets (one per AZ) for EKS. Apply after vpc.yaml. Cluster and NodeGroup use these.
+# Requires: VPC eks-vpc ready, provider-aws-ec2.
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: eks-public-1a
+spec:
+  forProvider:
+    region: eu-central-1
+    vpcIdRef:
+      name: eks-vpc
+    cidrBlock: 10.0.1.0/24
+    availabilityZone: eu-central-1a
+    mapPublicIpOnLaunch: true
+  providerConfigRef:
+    name: default
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: eks-public-1b
+spec:
+  forProvider:
+    region: eu-central-1
+    vpcIdRef:
+      name: eks-vpc
+    cidrBlock: 10.0.2.0/24
+    availabilityZone: eu-central-1b
+    mapPublicIpOnLaunch: true
+  providerConfigRef:
+    name: default
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: Subnet
+metadata:
+  name: eks-public-1c
+spec:
+  forProvider:
+    region: eu-central-1
+    vpcIdRef:
+      name: eks-vpc
+    cidrBlock: 10.0.3.0/24
+    availabilityZone: eu-central-1c
+    mapPublicIpOnLaunch: true
+  providerConfigRef:
+    name: default
