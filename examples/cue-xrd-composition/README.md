@@ -1,6 +1,6 @@
 # CUE: Programmatic XRD and Composition Generation
 
-Generate Crossplane XRDs and Compositions from CUE files instead of writing YAML by hand. This example produces the same `XPlatform` XRD and Composition as [my-platform](../my-platform/) and [examples/07-multi-resource-composition](../07-multi-resource-composition/).
+Generate Crossplane XRDs and Compositions from CUE files instead of writing YAML by hand. This example produces the same `XPlatform` XRD and Composition as [my-platform](../../my-platform/) and [examples/07-multi-resource-composition](../07-multi-resource-composition/).
 
 ## Prerequisites
 

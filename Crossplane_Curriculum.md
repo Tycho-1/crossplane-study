@@ -21,9 +21,15 @@ This curriculum organizes study materials for **Crossplane v2**, the cloud-nativ
 | — | **Crossplane for K8s applications (v2)** | [🚀 K8s Applications](./guides/09_Crossplane_For_Kubernetes_Applications.md) | Compose Deployments, Services, etc. (not only cloud MRs) |
 | 6 | Operations | [⏱️ Operations](./guides/06_Operations.md) | CronOperation, WatchOperation, day-two workflows |
 | 7 | Packages & CLI | [📦 Packages & CLI](./guides/07_Packages_CLI.md) | Functions, Configurations, crossplane CLI, render |
+| — | **Configurations** | [🗂️ Configurations](./guides/13_Configurations.md) | Packaging XRDs + Compositions + dependencies as a versioned platform API |
+| — | **Packages & xpkg CLI** | [📦 Packages & xpkg CLI](./guides/14_Packages_And_xpkg_CLI.md) | Build, push, and install packages with `crossplane xpkg` |
+| — | **Functions deep dive** | [🔬 Functions Deep Dive](./guides/15_Functions_Deep_Dive.md) | All available functions, combining them in a pipeline, writing a custom Go function |
+| — | **Programmatic YAML generation** | [🏭 Programmatic YAML](./guides/16_Programmatic_YAML_Generation.md) | How companies generate XRDs and Compositions; when to use which approach |
+| — | **Up CLI & DevEx** | [🧰 Up CLI & DevEx](./guides/17_Up_CLI_And_DevEx.md) | Upbound `up` CLI vs Crossplane CLI, landing-zone Configurations, DevEx workflow |
 | — | **Upbound Marketplace** | [🏪 Upbound Marketplace](./guides/11_Upbound_Marketplace.md) | Why the Marketplace matters; Providers vs Configurations; discover & install packages; configuration-aws-eks |
 | — | **AWS family: contrib vs Upbound** | [⚠️ contrib vs Upbound](./guides/18_AWS_Family_Contrib_vs_Upbound.md) | Why two family providers conflict; one stack per cluster; cleanup ProviderRevisions |
 | 8 | Upgrade & Troubleshooting | [🔧 Upgrade & Troubleshooting](./guides/08_Upgrade_Troubleshooting.md) | v1→v2 upgrade, common issues |
+| — | **Kind name collisions** | [💥 Kind Name Collisions](./guides/12_Kind_Name_Collisions.md) | Crossplane + Flux `Provider` clash; always use full resource names |
 | 9 | **GitOps** | [🔄 GitOps](./guides/10_GitOps.md) | Argo CD, Flux, directory structure, apply order, drift |
 | — | **Crossplane vs Terraform** | [⚖️ Crossplane vs Terraform](./guides/Crossplane_vs_Terraform.md) | Comparison + where to find “resource docs” (Terraform registry equivalent) |
 | — | **TF modules vs Crossplane Configurations** | [📐 Terraform modules vs Configurations](./guides/20_Terraform_Modules_vs_Crossplane_Configurations.md) | Reuse patterns: curated XRDs, fork vs variables, EKS/Helm examples |
@@ -43,9 +49,15 @@ This curriculum organizes study materials for **Crossplane v2**, the cloud-nativ
 - 🚀 [Crossplane for Kubernetes Applications](./guides/09_Crossplane_For_Kubernetes_Applications.md) – compose normal K8s apps (v2)
 - ⏱️ [06 – Operations](./guides/06_Operations.md)
 - 📦 [07 – Packages & CLI](./guides/07_Packages_CLI.md)
+- 🗂️ [13 – Configurations](./guides/13_Configurations.md)
+- 📦 [14 – Packages & the xpkg CLI](./guides/14_Packages_And_xpkg_CLI.md)
+- 🔬 [15 – Composition Functions: Deep Dive](./guides/15_Functions_Deep_Dive.md)
+- 🏭 [16 – Programmatic YAML Generation](./guides/16_Programmatic_YAML_Generation.md)
+- 🧰 [17 – Up CLI and DevEx](./guides/17_Up_CLI_And_DevEx.md)
 - 🏪 [11 – Upbound Marketplace](./guides/11_Upbound_Marketplace.md) – why it matters; Providers vs Configurations; discover & install; configuration-aws-eks
 - ⚠️ [AWS family: contrib vs Upbound](./guides/18_AWS_Family_Contrib_vs_Upbound.md) – do not mix two family providers; errors and cleanup
 - 🔧 [08 – Upgrade & Troubleshooting](./guides/08_Upgrade_Troubleshooting.md)
+- 💥 [12 – Kind Name Collisions](./guides/12_Kind_Name_Collisions.md) – Crossplane + Flux `Provider` clash
 - 🔄 [10 – GitOps](./guides/10_GitOps.md) – Argo CD, Flux, directory structure, apply order
 - ⚖️ [Crossplane vs Terraform](./guides/Crossplane_vs_Terraform.md) – comparison & where to find Crossplane “resource docs” (Terraform registry equivalent)
 - 📐 [20 – Terraform modules vs Crossplane Configurations](./guides/20_Terraform_Modules_vs_Crossplane_Configurations.md) – reuse: curated APIs vs generic modules, when fork beats `tfvars`
