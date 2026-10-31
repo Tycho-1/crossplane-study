@@ -65,7 +65,8 @@ spec:
 ```
 
 ```bash
-kubectl apply -f xr.yaml
+# Same XR as above (kept outside the package root so xpkg build ignores it)
+kubectl apply -f ../examples/07-multi-resource-composition/xr.yaml
 
 # Verify
 kubectl get xplatforms -n default
@@ -77,7 +78,10 @@ kubectl get policy.iam
 ## Dry-run locally (no cluster needed)
 
 ```bash
-crossplane render xr.yaml composition.yaml functions.yaml
+crossplane render \
+  ../examples/07-multi-resource-composition/xr.yaml \
+  composition.yaml \
+  ../examples/07-multi-resource-composition/functions.yaml
 ```
 
 ## Build and push

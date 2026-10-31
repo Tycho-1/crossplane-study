@@ -73,7 +73,7 @@ spec:
   crossplane:
     version: ">=2.0.0"           # minimum Crossplane version required
   dependsOn:
-    - function: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform
+    - function: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform
       version: ">=v0.10.0"
     - provider: xpkg.crossplane.io/crossplane-contrib/provider-aws-s3
       version: ">=v2.0.0"
@@ -127,7 +127,7 @@ spec:
   crossplane:
     version: ">=2.0.0"
   dependsOn:
-    - function: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform
+    - function: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform
       version: ">=v0.10.0"
     - provider: xpkg.crossplane.io/crossplane-contrib/provider-aws-s3
       version: ">=v2.0.0"

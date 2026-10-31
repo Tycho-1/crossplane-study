@@ -279,12 +279,13 @@ You should see CRDs like:
 
 ---
 
-## Alternative: Use eks-cluster-spot VPC (ec2.aws.upbound.io)
+## Alternative: Use eks-cluster-spot VPC (provider-based)
 
-If you prefer the standalone provider-aws-ec2 (`ec2.aws.upbound.io`), use the **provider-based** VPC from [eks-cluster-spot](../eks-cluster-spot/):
+If you prefer plain managed resources over a Network XR, use the **provider-based** network from [eks-cluster-spot](../eks-cluster-spot/) (`ec2.aws.m.upbound.io`, namespace `eks-spot`):
 
-- `vpc.yaml` — uses `ec2.aws.upbound.io`
-- `subnets.yaml` — uses `ec2.aws.upbound.io`
+- `vpc.yaml` — VPC
+- `subnets.yaml` — three public subnets
+- `routing.yaml` — Internet Gateway, route table, associations
 
 That approach does not use configuration-aws-network. The EKS configuration-aws-eks expects subnets labeled with `networks.aws.platform.upbound.io/network-id` — you'd need to add those labels to the provider-created subnets, or use a different EKS setup.
 

@@ -6,9 +6,11 @@ metadata:
   name: cert-monitor
 spec:
   schedule: "0 6 * * *"   # Cron: minute 0, hour 6, every day
-  mode: Pipeline
-  pipeline:
-    - step: check-certificates
-      functionRef:
-        name: crossplane-contrib-function-python
-      # input would define the script; function checks certs and reports status
+  operationTemplate:      # each run creates an Operation from this template
+    spec:
+      mode: Pipeline
+      pipeline:
+        - step: check-certificates
+          functionRef:
+            name: crossplane-contrib-function-python
+          # input would define the script; function checks certs and reports status

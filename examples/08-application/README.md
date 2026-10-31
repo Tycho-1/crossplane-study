@@ -7,7 +7,7 @@ Same idea as [05-app-with-deployment](../05-app-with-deployment/); this folder i
 ## Prerequisites
 
 - Crossplane installed (v2)
-- **function-patch-and-transform** installed
+- **function-patch-and-transform** installed (`kubectl apply -f functions.yaml`)
 - RBAC: Crossplane must be able to create `deployments` and `services`. If not, apply `rbac.yaml`.
 
 ## RBAC (if needed)

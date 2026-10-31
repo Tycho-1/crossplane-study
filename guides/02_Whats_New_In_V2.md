@@ -120,12 +120,14 @@ metadata:
   name: cert-monitor
 spec:
   schedule: "0 6 * * *"   # Daily at 6 AM
-  mode: Pipeline
-  pipeline:
-    - step: check-certificates
-      functionRef:
-        name: crossplane-contrib-function-python
-  # function checks SSL certs and reports status
+  operationTemplate:
+    spec:
+      mode: Pipeline
+      pipeline:
+        - step: check-certificates
+          functionRef:
+            name: crossplane-contrib-function-python
+      # function checks SSL certs and reports status
 ```
 
 **Status:** Operations are **alpha** in v2.

@@ -1,0 +1,81 @@
+# Internet access for the public subnets: Internet Gateway, a route table with a default
+# route to it, and one association per subnet. Without this, nodes cannot pull images or
+# reach the EKS API, and the node group never becomes ACTIVE.
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: InternetGateway
+metadata:
+  name: eks-igw
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    vpcIdRef:
+      name: eks-vpc
+    tags:
+      Name: eks-spot-igw
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: RouteTable
+metadata:
+  name: eks-public-rt
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    vpcIdRef:
+      name: eks-vpc
+    tags:
+      Name: eks-spot-public
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: Route
+metadata:
+  name: eks-public-default-route
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    destinationCidrBlock: 0.0.0.0/0
+    routeTableIdRef:
+      name: eks-public-rt
+    gatewayIdRef:
+      name: eks-igw
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: RouteTableAssociation
+metadata:
+  name: eks-public-1a-rta
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    routeTableIdRef:
+      name: eks-public-rt
+    subnetIdRef:
+      name: eks-public-1a
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: RouteTableAssociation
+metadata:
+  name: eks-public-1b-rta
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    routeTableIdRef:
+      name: eks-public-rt
+    subnetIdRef:
+      name: eks-public-1b
+---
+apiVersion: ec2.aws.m.upbound.io/v1beta1
+kind: RouteTableAssociation
+metadata:
+  name: eks-public-1c-rta
+  namespace: eks-spot
+spec:
+  forProvider:
+    region: eu-central-1
+    routeTableIdRef:
+      name: eks-public-rt
+    subnetIdRef:
+      name: eks-public-1c

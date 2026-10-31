@@ -1,0 +1,28 @@
+# Enable --debug logging on one provider to see reconcile attempts and AWS errors.
+# Each managed resource is reconciled by its *service* provider (Role → provider-aws-iam,
+# Cluster/NodeGroup → provider-aws-eks, VPC/Subnet → provider-aws-ec2), not by the family provider.
+#
+# 1. kubectl apply -f debug-runtime-config.yaml
+# 2. Point a provider at it (restarts its pod):
+#    kubectl patch providers.pkg.crossplane.io provider-aws-iam --type=merge \
+#      -p '{"spec":{"runtimeConfigRef":{"name":"debug"}}}'
+# 3. Find the pod and follow its logs:
+#    kubectl get pods -n crossplane-system
+#    kubectl logs -n crossplane-system <provider-aws-iam-pod> -f
+# 4. When done, go back to the default runtime config:
+#    kubectl patch providers.pkg.crossplane.io provider-aws-iam --type=merge \
+#      -p '{"spec":{"runtimeConfigRef":{"name":"default"}}}'
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: debug
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              args:
+                - --debug

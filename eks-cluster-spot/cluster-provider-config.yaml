@@ -1,0 +1,15 @@
+# Shared AWS credentials for every Upbound AWS provider (EC2, EKS, IAM, ...).
+# Namespaced managed resources use ClusterProviderConfig "default" when providerConfigRef is omitted,
+# so none of the other files in this folder set providerConfigRef.
+# Prerequisite: Secret aws-secret (key: creds, AWS INI format) in crossplane-system.
+apiVersion: aws.m.upbound.io/v1beta1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-secret
+      key: creds

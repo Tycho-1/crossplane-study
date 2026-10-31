@@ -174,7 +174,7 @@ kind: Function
 metadata:
   name: function-patch-and-transform
 spec:
-  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1
 ```
 
 - **Function** is a Crossplane package type (like Provider). Installing it makes the **function-patch-and-transform** controller available.

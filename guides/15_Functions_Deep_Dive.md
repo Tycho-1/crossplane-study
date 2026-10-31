@@ -50,7 +50,7 @@ kind: Function
 metadata:
   name: function-patch-and-transform
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.10.1
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1
 ```
 
 ```bash
@@ -77,7 +77,7 @@ kind: Function
 metadata:
   name: function-patch-and-transform
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.10.1
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1
 ```
 
 **Use in Composition:**
@@ -119,7 +119,7 @@ kind: Function
 metadata:
   name: function-kcl
 spec:
-  package: xpkg.crossplane.io/crossplane-contrib/function-kcl:v0.10.3
+  package: xpkg.crossplane.io/crossplane-contrib/function-kcl:v0.12.3
 ```
 
 **Use in Composition:**
@@ -186,7 +186,7 @@ kind: Function
 metadata:
   name: function-go-templating
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.7.0
+  package: xpkg.crossplane.io/crossplane-contrib/function-go-templating:v0.12.5
 ```
 
 **Use in Composition:**
@@ -239,7 +239,7 @@ kind: Function
 metadata:
   name: function-auto-ready
 spec:
-  package: xpkg.crossplane.io/crossplane-contrib/function-auto-ready:v0.2.1
+  package: xpkg.crossplane.io/crossplane-contrib/function-auto-ready:v0.6.0
 ```
 
 **Use in Composition — always as the last step:**
@@ -270,7 +270,7 @@ kind: Function
 metadata:
   name: function-sequencer
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-sequencer:v0.3.0
+  package: xpkg.crossplane.io/crossplane-contrib/function-sequencer:v0.3.0
 ```
 
 **Use in Composition:**

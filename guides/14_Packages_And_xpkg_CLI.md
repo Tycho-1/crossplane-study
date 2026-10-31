@@ -58,14 +58,14 @@ kind: Function
 metadata:
   name: function-patch-and-transform
 spec:
-  package: xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.10.1
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1
 ```
 
 ```bash
 kubectl get functions.pkg.crossplane.io
 
 NAME                           INSTALLED   HEALTHY   PACKAGE                                                                          AGE
-function-patch-and-transform   True        True      xpkg.upbound.io/crossplane-contrib/function-patch-and-transform:v0.10.1          3m
+function-patch-and-transform   True        True      xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1          3m
 ```
 
 ### Configuration

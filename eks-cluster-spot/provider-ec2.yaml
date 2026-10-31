@@ -1,11 +1,10 @@
-# Optional: install a provider that supplies VPC/Subnet/InternetGateway/RouteTable (EC2 networking).
-# Use this if you want full IaC including VPC. Choose one:
-# - crossplane-contrib provider-family-aws (you may already have it) → EC2 is often under ec2.aws.m.upbound.io
-# - Upbound provider-aws-ec2 → use ec2.aws.upbound.io in vpc.yaml / subnets.yaml and set providerConfigRef to your default
-# This manifest installs Upbound provider-aws-ec2 so we can use ec2.aws.upbound.io (VPC, Subnet, etc.).
+# Upbound provider-aws-ec2 (VPC, Subnet, InternetGateway, RouteTable, Route, ...).
+# Installs upbound-provider-family-aws as a dependency (ClusterProviderConfig API).
+# Keep all Upbound AWS providers on the same version — see guides/18_AWS_Family_Contrib_vs_Upbound.md.
+# Wait until: kubectl get providers.pkg.crossplane.io → INSTALLED=True, HEALTHY=True
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-aws-ec2
 spec:
-  package: xpkg.upbound.io/upbound/provider-aws-ec2:v1.2.0
+  package: xpkg.upbound.io/upbound/provider-aws-ec2:v2.5.0

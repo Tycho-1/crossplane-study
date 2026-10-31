@@ -6,7 +6,7 @@ Define a **custom API** (`XBucket`) and a **Composition** that creates an S3 Buc
 
 - Crossplane installed
 - **provider-aws-s3** installed and healthy
-- **function-patch-and-transform** installed
+- **function-patch-and-transform** installed (`kubectl apply -f functions.yaml`)
 - **ClusterProviderConfig** with AWS credentials (see [02-provider-config-aws](../02-provider-config-aws/))
 
 ## Apply order
@@ -43,7 +43,7 @@ If you have the Crossplane CLI and Docker:
 crossplane render xr.yaml composition.yaml functions.yaml
 ```
 
-(You need a `functions.yaml` that declares the function-patch-and-transform Function so the CLI knows which image to run.)
+[functions.yaml](./functions.yaml) declares the function-patch-and-transform Function so the CLI knows which image to run.
 
 ## Cleanup
 

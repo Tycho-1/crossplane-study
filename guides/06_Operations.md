@@ -36,15 +36,18 @@ metadata:
   name: cert-monitor
 spec:
   schedule: "0 6 * * *"   # Cron: daily 6 AM
-  mode: Pipeline
-  pipeline:
-    - step: check-certificates
-      functionRef:
-        name: crossplane-contrib-function-python
-  # Function would read certs, check expiry, write result to status or events
+  operationTemplate:
+    spec:
+      mode: Pipeline
+      pipeline:
+        - step: check-certificates
+          functionRef:
+            name: crossplane-contrib-function-python
+      # Function would read certs, check expiry, write result to status or events
 ```
 
 - **schedule:** Standard cron (e.g. `"0 * * * *"` = every hour).
+- **operationTemplate:** Each scheduled run creates an `Operation` from this template.
 - **pipeline:** Same idea as Composition: list of steps, each with `functionRef` and optional `input` / `requirements`.
 
 ---

@@ -1,9 +1,11 @@
-# Three public subnets (one per AZ) for EKS. Apply after vpc.yaml. Cluster and NodeGroup use these.
-# Requires: VPC eks-vpc ready, provider-aws-ec2.
-apiVersion: ec2.aws.upbound.io/v1beta1
+# Three public subnets (one per AZ). The cluster and node group reference them via subnetIdRefs;
+# routing.yaml attaches them to a route table with an Internet Gateway.
+# kubernetes.io/role/elb lets the AWS Load Balancer Controller place internet-facing LBs here.
+apiVersion: ec2.aws.m.upbound.io/v1beta1
 kind: Subnet
 metadata:
   name: eks-public-1a
+  namespace: eks-spot
 spec:
   forProvider:
     region: eu-central-1
@@ -12,13 +14,15 @@ spec:
     cidrBlock: 10.0.1.0/24
     availabilityZone: eu-central-1a
     mapPublicIpOnLaunch: true
-  providerConfigRef:
-    name: default
+    tags:
+      Name: eks-public-1a
+      kubernetes.io/role/elb: "1"
 ---
-apiVersion: ec2.aws.upbound.io/v1beta1
+apiVersion: ec2.aws.m.upbound.io/v1beta1
 kind: Subnet
 metadata:
   name: eks-public-1b
+  namespace: eks-spot
 spec:
   forProvider:
     region: eu-central-1
@@ -27,13 +31,15 @@ spec:
     cidrBlock: 10.0.2.0/24
     availabilityZone: eu-central-1b
     mapPublicIpOnLaunch: true
-  providerConfigRef:
-    name: default
+    tags:
+      Name: eks-public-1b
+      kubernetes.io/role/elb: "1"
 ---
-apiVersion: ec2.aws.upbound.io/v1beta1
+apiVersion: ec2.aws.m.upbound.io/v1beta1
 kind: Subnet
 metadata:
   name: eks-public-1c
+  namespace: eks-spot
 spec:
   forProvider:
     region: eu-central-1
@@ -42,5 +48,6 @@ spec:
     cidrBlock: 10.0.3.0/24
     availabilityZone: eu-central-1c
     mapPublicIpOnLaunch: true
-  providerConfigRef:
-    name: default
+    tags:
+      Name: eks-public-1c
+      kubernetes.io/role/elb: "1"
