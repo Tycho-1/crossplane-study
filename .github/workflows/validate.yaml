@@ -30,7 +30,7 @@ jobs:
       # validated when the community CRDs-catalog has a schema for them, skipped otherwise.
       - name: Validate manifests
         run: |
-          git ls-files '*.yaml' | grep -vE '^\.github/|^\.yamllint\.yaml$' | xargs kubeconform \
+          git ls-files '*.yaml' | grep -vE '(^|/)\.github/|^\.yamllint\.yaml$' | xargs kubeconform \
             -summary -strict -ignore-missing-schemas \
             -kubernetes-version 1.34.0 \
             -schema-location default \

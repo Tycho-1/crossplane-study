@@ -1,6 +1,5 @@
 # Functions used by the Composition pipeline.
 # Apply before composition.yaml so they are installed when the pipeline runs.
----
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
