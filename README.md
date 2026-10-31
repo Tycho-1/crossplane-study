@@ -5,8 +5,6 @@
 
 Personal study and course materials for **Crossplane v2**: narrative guides, runnable YAML, and larger **Configurations** you can install, learn from, or use as a base for your own packages. Content is aligned with the [official Crossplane documentation](https://docs.crossplane.io/latest/) and [Crossplane on GitHub](https://github.com/crossplane).
 
-**Repository (replace after you publish):** `https://github.com/YOUR_USERNAME/YOUR_REPO` — fork or clone from your account as needed.
-
 ## What this repository is
 
 **Guides (`guides/`)** — The written **course**: concepts, installation, managed resources and providers, composition (XRDs, Compositions, functions), Operations, packages/GitOps, comparisons (e.g. Terraform), Helm → Crossplane, Upbound Marketplace, AWS family providers (contrib vs Upbound), and programmatic YAML. They are numbered and cross-linked from **[Crossplane_Curriculum.md](./Crossplane_Curriculum.md)**, which is the **table of contents and suggested learning path**.
@@ -62,24 +60,10 @@ The [official managed-resources tutorial](https://docs.crossplane.io/latest/get-
 - [What's New in v2](https://docs.crossplane.io/latest/whats-new/)
 - [Crossplane GitHub](https://github.com/crossplane)
 
-## GitHub repository settings (optional)
-
-When you push this repo to **GitHub**, you can mirror common open-source polish:
-
-| Setting | Suggestion |
-|--------|------------|
-| **About → Description** | Short line from the first paragraph of this README (e.g. “Course-style Crossplane v2 guides, examples, and configurations”). |
-| **About → Website** | `https://docs.crossplane.io/latest/` or your own notes URL. |
-| **About → Topics** | e.g. `crossplane`, `kubernetes`, `platform-engineering`, `gitops`, `composition`, `infrastructure-as-code`, `xrd` |
-| **General → Features** | Enable **Issues** (and **Discussions** if you want Q&A). |
-| **General → Wiki** | Off unless you use it. |
-
-Update the **Repository** link near the top of this file to your real `https://github.com/<user>/<repo>` URL.
-
 ## Contributing
 
 Issues and pull requests are welcome if you use this as a public repo. For substantive changes, open an issue first so direction matches the course scope. Third-party **Crossplane** and **Kubernetes** trademarks belong to their respective owners; this project is an independent study resource.
 
 ## License
 
-This repository is released under the [MIT License](./LICENSE). You may replace it with another license at the repository root if you prefer; update this section accordingly.
+This repository is released under the [MIT License](./LICENSE).

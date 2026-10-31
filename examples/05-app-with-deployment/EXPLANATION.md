@@ -158,7 +158,7 @@ So the **function** is what turns “XR + template + patches” into “concrete
 Yes, there is source code. The function we use is **function-patch-and-transform**; its code lives in the repo [crossplane-contrib/function-patch-and-transform](https://github.com/crossplane-contrib/function-patch-and-transform). The package (image) is built from that repo.
 
 **What other functions exist?**  
-You can use other composition functions in your pipeline, for example: **function-cue** (CUE scripts, loops/conditionals), **function-auto-ready** (readiness), or **custom functions** in **Go** (function-sdk-go, function-template-go) or **Python**. See the guide **[Composition Functions: Available and Custom](../guides/Composition_Functions_Available_And_Custom.md)** for a list, examples, and how to write your own (Go: `crossplane xpkg init`, implement `RunFunction` in `fn.go`, build and push package).
+You can use other composition functions in your pipeline, for example: **function-cue** (CUE scripts, loops/conditionals), **function-auto-ready** (readiness), or **custom functions** in **Go** (function-sdk-go, function-template-go) or **Python**. See the guide **[Composition Functions: Available and Custom](../../guides/Composition_Functions_Available_And_Custom.md)** for a list, examples, and how to write your own (Go: `crossplane xpkg init`, implement `RunFunction` in `fn.go`, build and push package).
 
 ---
 
