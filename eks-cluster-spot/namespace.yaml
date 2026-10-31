@@ -1,0 +1,7 @@
+# All managed resources in this folder live in one namespace.
+# Crossplane v2 namespaced references (roleArnRef, subnetIdRefs, vpcIdRef, ...) resolve
+# within the same namespace, so keep every file here in `eks-spot`.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: eks-spot

@@ -1,14 +1,14 @@
-# VPC for EKS in eu-central-1. Apply before subnets, then IGW, route table, then cluster.
-# Requires: provider-aws-ec2 (provider-ec2.yaml), ProviderConfig default for EC2 (aws.upbound.io or use same as EKS).
-apiVersion: ec2.aws.upbound.io/v1beta1
+# VPC for EKS in eu-central-1. Subnets and routing reference it via vpcIdRef.
+apiVersion: ec2.aws.m.upbound.io/v1beta1
 kind: VPC
 metadata:
   name: eks-vpc
+  namespace: eks-spot
 spec:
   forProvider:
     region: eu-central-1
     cidrBlock: 10.0.0.0/16
     enableDnsSupport: true
     enableDnsHostnames: true
-  providerConfigRef:
-    name: default
+    tags:
+      Name: eks-spot-vpc

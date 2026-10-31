@@ -10,7 +10,7 @@ When you reference a function by name (e.g. `function-patch-and-transform`), tha
 
 For **function-patch-and-transform**:
 
-- **Package (image):** `xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2`
+- **Package (image):** `xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1`
 - **Source code:** [github.com/crossplane-contrib/function-patch-and-transform](https://github.com/crossplane-contrib/function-patch-and-transform)
 
 So yes: **crossplane-contrib/function-patch-and-transform** is the repo; the image is built from that code and published as a Crossplane Function package. You can read the code, open issues, or contribute there.

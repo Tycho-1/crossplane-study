@@ -2,6 +2,7 @@
 
 [![Crossplane docs](https://img.shields.io/badge/docs-docs.crossplane.io-5C4EE5?style=flat-square)](https://docs.crossplane.io/latest/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Validate](https://github.com/Tycho-1/crossplane-study/actions/workflows/validate.yaml/badge.svg)](https://github.com/Tycho-1/crossplane-study/actions/workflows/validate.yaml)
 
 Personal study and course materials for **Crossplane v2**: narrative guides, runnable YAML, and larger **Configurations** you can install, learn from, or use as a base for your own packages. Content is aligned with the [official Crossplane documentation](https://docs.crossplane.io/latest/) and [Crossplane on GitHub](https://github.com/crossplane).
 
@@ -53,6 +54,15 @@ crossplane-study/
 ```
 
 The [official managed-resources tutorial](https://docs.crossplane.io/latest/get-started/get-started-with-managed-resources/) manifests (contrib S3 provider, `ClusterProviderConfig`, bucket) live under **`examples/00-official-doc-awsbucket/`**.
+
+## Validation
+
+Every push and pull request runs [`.github/workflows/validate.yaml`](./.github/workflows/validate.yaml):
+
+- **yamllint** — YAML syntax and style.
+- **kubeconform** — manifests against Kubernetes schemas (and Crossplane/provider CRD schemas where available).
+- **lychee** — all relative links between Markdown files.
+- **crossplane render** — runs the composition examples through their function pipelines to prove they produce resources.
 
 ## References
 

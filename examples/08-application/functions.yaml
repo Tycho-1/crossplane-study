@@ -1,0 +1,8 @@
+# Function used by the Composition pipeline. Apply before composition.yaml;
+# crossplane render also reads it to know which image to run.
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-patch-and-transform
+spec:
+  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.10.1

@@ -1,134 +1,108 @@
 # EKS Cluster in eu-central-1 with Spot Node Group
 
-Crossplane manifests for an **EKS cluster** in **eu-central-1** and a **managed node group** using **Spot instances**. **Cluster and node IAM roles are defined in Crossplane YAML** and referenced by the Cluster and NodeGroup (no manual ARN copy).
+Crossplane v2 manifests for a complete **EKS** setup in **eu-central-1** using raw **Upbound AWS providers** — no Configuration package. Everything is created by Crossplane: VPC, public subnets, Internet Gateway and routing, IAM roles, the cluster, and a **managed node group on Spot capacity**. Resources find each other by reference (`vpcIdRef`, `subnetIdRefs`, `roleArnRef`, …), so there are no IDs or ARNs to copy.
+
+Compare with [configuration-aws-eks](../configuration-aws-eks/), where one XR creates a similar stack through a curated Marketplace Configuration.
 
 ## What’s in this folder
 
 | File | Purpose |
-|------|--------|
-| **provider-iam.yaml** | Optional: install provider-aws-iam (for IAM Role resources). |
-| **provider-eks.yaml** | Optional: install provider-aws-eks (for Cluster and NodeGroup). |
-| **provider-config-iam.yaml** | **Required:** Shared ClusterProviderConfig (aws.m.upbound.io). IAM provider has no config CRD; it uses this. |
-| **iam-cluster-role.yaml** | IAM Role for EKS cluster (trust `eks.amazonaws.com` + AmazonEKSClusterPolicy). |
-| **iam-node-role.yaml** | IAM Role for node group (trust `ec2.amazonaws.com` + EKS worker policies). |
-| **cluster.yaml** | EKS Cluster in eu-central-1; uses **roleArnRef** → `eks-cluster-role`. |
-| **nodegroup-spot.yaml** | EKS NodeGroup with **capacityType: SPOT**; uses **nodeRoleArnRef** → `eks-node-role`. |
+|------|---------|
+| **provider-ec2.yaml**, **provider-eks.yaml**, **provider-iam.yaml** | Upbound providers, all pinned to **v2.5.0**. They pull in `upbound-provider-family-aws` automatically. |
+| **cluster-provider-config.yaml** | `ClusterProviderConfig` `default` (`aws.m.upbound.io`) — shared credentials for all three providers. |
+| **namespace.yaml** | Namespace `eks-spot`; every managed resource below lives here. |
+| **vpc.yaml** | VPC `10.0.0.0/16`. |
+| **subnets.yaml** | Three public subnets, one per AZ (1a, 1b, 1c). |
+| **routing.yaml** | Internet Gateway, public route table with `0.0.0.0/0` route, and one association per subnet. |
+| **iam-cluster-role.yaml** | IAM role for the control plane (`AmazonEKSClusterPolicy`). |
+| **iam-node-role.yaml** | IAM role for worker nodes (worker, CNI, ECR read-only policies). |
+| **cluster.yaml** | EKS cluster, Kubernetes **1.34**, access entries (`authenticationMode: API`). |
+| **nodegroup-spot.yaml** | Managed node group, **`capacityType: SPOT`**, AL2023, `t3.medium` + `t3a.medium`. |
+| **debug-runtime-config.yaml** | Optional: turn on `--debug` logging for one provider while troubleshooting. |
 
 ## Prerequisites
 
-1. **Crossplane** installed.
-2. **AWS credentials**: a Secret (e.g. `aws-secret` in `crossplane-system`) with your AWS creds; **provider-aws-iam** needs its own ProviderConfig (see **provider-config-iam.yaml**).
-3. **VPC and subnets** in eu-central-1 (at least 2 subnets in different AZs). You still need to set **subnet IDs** in the manifests (see below).
+1. **Crossplane v2** installed.
+2. **No crossplane-contrib AWS family provider** on the same cluster — it conflicts with the Upbound one. See [guides/18_AWS_Family_Contrib_vs_Upbound.md](../guides/18_AWS_Family_Contrib_vs_Upbound.md).
+3. **AWS credentials** in Secret `aws-secret` (key `creds`, AWS INI format) in `crossplane-system`:
 
-## Apply order
+   ```bash
+   kubectl create secret generic aws-secret -n crossplane-system --from-file=creds=./aws-credentials.ini
+   ```
 
-1. **Providers** (if not already installed): provider-aws-iam, then provider-aws-eks.
-2. **ProviderConfig for IAM**: apply **provider-config-iam.yaml** (so the IAM provider can connect; uses the same Secret as your other AWS config).
-3. **IAM roles**: cluster role, then node role.
-3. **EKS Cluster** (references cluster role by name).
-4. **EKS NodeGroup** (after cluster is READY; references node role by name).
+   The IAM identity needs permissions for EC2 networking, IAM roles (`iam:CreateRole`, `iam:AttachRolePolicy`, `iam:PassRole`, …), and EKS.
+
+> **Cost:** this creates a real EKS control plane plus EC2 Spot nodes. Clean up when you are done (see below).
+
+## Apply
 
 ```bash
-# 1. Install providers (once)
-kubectl apply -f provider-iam.yaml
-kubectl apply -f provider-eks.yaml
-kubectl get providers   # wait until both are HEALTHY
+# 1. Providers — wait until all are HEALTHY
+kubectl apply -f provider-ec2.yaml -f provider-eks.yaml -f provider-iam.yaml
+kubectl get providers.pkg.crossplane.io
 
-# 2. ProviderConfig for IAM (Secret aws-secret must exist in crossplane-system)
-kubectl apply -f provider-config-iam.yaml
+# 2. Credentials and namespace
+kubectl apply -f cluster-provider-config.yaml -f namespace.yaml
 
-# 3. Create IAM roles (Crossplane creates them in AWS)
-kubectl apply -f iam-cluster-role.yaml
-kubectl apply -f iam-node-role.yaml
-kubectl get role.iam.aws.m.upbound.io   # wait until both are SYNCED / READY
+# 3. Network
+kubectl apply -f vpc.yaml -f subnets.yaml -f routing.yaml
 
-# 4. Edit cluster.yaml: set vpcConfig.subnetIds to your subnet IDs in eu-central-1
+# 4. IAM roles
+kubectl apply -f iam-cluster-role.yaml -f iam-node-role.yaml
+
+# 5. Cluster (10–15 minutes until READY)
 kubectl apply -f cluster.yaml
+kubectl get clusters.eks.aws.m.upbound.io -n eks-spot -w
 
-# 5. Wait until cluster is ready (10–15 minutes)
-kubectl get cluster.eks.aws.upbound.io my-eks-cluster -w
-
-# 6. Edit nodegroup-spot.yaml: set subnetIds to your subnet IDs (same or subset)
+# 6. Spot node group
 kubectl apply -f nodegroup-spot.yaml
+kubectl get nodegroups.eks.aws.m.upbound.io -n eks-spot -w
 ```
 
-## Customize before applying
+Steps 2–6 can also be applied in one go: references stay unresolved (and resources keep retrying) until their dependencies exist, so Crossplane converges on its own. The order above just makes progress easier to follow.
 
-You only need to set **subnet IDs** (and optionally cluster version, scaling, instance types):
+## Customize
 
-| File | What to set |
-|------|-------------|
-| **cluster.yaml** | `spec.forProvider.vpcConfig.subnetIds` → your VPC subnet IDs (eu-central-1, at least 2 AZs). |
-| **nodegroup-spot.yaml** | `spec.forProvider.subnetIds` → same (or subset of) subnets. |
-
-Cluster and node group **roles are created by Crossplane** and referenced by name (`roleArnRef` / `nodeRoleArnRef`); no ARN copy needed.
-
-Optional:
-
-- **cluster.yaml**: `version` (e.g. `"1.28"`).
-- **nodegroup-spot.yaml**: `scalingConfig` (min/max/desired), `instanceTypes`.
+| What | Where |
+|------|-------|
+| Region / AZs | `region` in every file, `availabilityZone` in **subnets.yaml** |
+| CIDRs | **vpc.yaml**, **subnets.yaml** |
+| Kubernetes version | `version` in **cluster.yaml** (use a version in EKS standard support) |
+| Node sizes and count | `instanceTypes` and `scalingConfig` in **nodegroup-spot.yaml** |
+| Names | `metadata.name` is the AWS resource name for the cluster and IAM roles; update references if you rename |
 
 ## Verify
 
 ```bash
-# IAM roles
-kubectl get role.iam.aws.m.upbound.io
+kubectl get managed -n eks-spot     # every resource SYNCED=True, READY=True
 
-# Cluster
-kubectl get cluster.eks.aws.upbound.io
-kubectl describe cluster.eks.aws.upbound.io my-eks-cluster
-
-# Node group
-kubectl get nodegroup.eks.aws.upbound.io
-kubectl describe nodegroup.eks.aws.upbound.io my-eks-spot-nodegroup
+# kubeconfig for the new cluster (same IAM identity as aws-secret)
+aws eks update-kubeconfig --region eu-central-1 --name my-eks-cluster
+kubectl get nodes -L eks.amazonaws.com/capacityType   # expect SPOT
 ```
 
-In AWS: EKS → Clusters → your cluster → Compute → Node groups (capacity type **Spot**).
+`bootstrapClusterCreatorAdminPermissions: true` in **cluster.yaml** gives cluster-admin to the IAM identity Crossplane used to create the cluster. To grant access to another IAM user or role, add an EKS `AccessEntry` + `AccessPolicyAssociation` (the [configuration-aws-eks](../configuration-aws-eks/) `iam.principalArn` parameter does exactly that).
 
-## API version note
+## Troubleshooting
 
-IAM Role manifests use **`iam.aws.m.upbound.io/v1beta1`** so they use the shared **aws.m.upbound.io** ClusterProviderConfig. Cluster and NodeGroup use **`eks.aws.upbound.io/v1beta1`**. All are cluster-scoped unless your providers use namespaced APIs.
-
-## Troubleshooting: Role not created in AWS
-
-The Role is managed by **crossplane-contrib-provider-family-aws** (the one that owns `roles.iam.aws.m.upbound.io`). If the Role exists in the cluster but `aws iam get-role --role-name eks-cluster-role` returns `NoSuchEntity`:
-
-1. **Provider logs** – Check the family provider pod for errors:
-   ```bash
-   kubectl logs -n crossplane-system -l pkg.crossplane.io/provider=crossplane-contrib-provider-family-aws --tail=100
-   ```
-   Look for `AccessDenied`, `UnauthorizedOperation`, `InvalidClientTokenId`, or "cannot get ProviderConfig".
-
-2. **AWS IAM permissions** – The credentials in the Secret (used by ClusterProviderConfig `default`) must be allowed to create IAM roles. S3 can work with fewer permissions; IAM needs at least:
-   - `iam:CreateRole`
-   - `iam:AttachRolePolicy`
-   - `iam:GetRole`
-   - `iam:DeleteRole` / `iam:DetachRolePolicy` (for delete)
-   Attach a policy (e.g. `IAMFullAccess` or a custom policy with these actions) to the IAM user or role whose credentials are in `aws-secret`.
-
-3. **Config and Secret** – Confirm the default config and Secret exist:
-   ```bash
-   kubectl get clusterproviderconfig.aws.m.upbound.io default
-   kubectl get secret aws-secret -n crossplane-system
-   ```
-
-4. **Namespace** – The family provider may only reconcile resources in **crossplane-system**. The Role manifests in this folder set `metadata.namespace: crossplane-system` so the provider picks them up. If your Role was in `default`, delete it and re-apply so it is created in `crossplane-system`.
-
-5. **"Timeout: failed waiting for *v1beta1.ClusterProviderConfig Informer to sync"** – The provider’s cache for ClusterProviderConfig never finished syncing. Fix:
-   - Ensure the default config exists: `kubectl get clusterproviderconfig.aws.m.upbound.io default`
-   - Restart the family provider so it re-syncs: `kubectl delete pod -n crossplane-system -l pkg.crossplane.io/provider=crossplane-contrib-provider-family-aws`
-   - Wait for the new pod to be Ready (1–2 min), then check the Role again. If it still fails, the provider’s ServiceAccount may lack permission to list/watch `clusterproviderconfigs.aws.m.upbound.io`; check RBAC for that API group.
-
-6. **Debug logging** – To see reconcile attempts and errors, enable debug on the family provider (edit the Provider to add a `runtimeConfigRef` to a DeploymentRuntimeConfig that adds `--debug` to the container args), then check logs again.
+- **Resource stuck at `SYNCED=False`** — `kubectl describe` it; the `Synced` condition message contains the AWS error (e.g. `AccessDenied`, `UnauthorizedOperation`).
+- **Reference not resolved** — the referenced object must exist in the **same namespace** (`eks-spot`) and be READY. Check names in `*Ref` fields.
+- **`ClusterProviderConfig "default" not found`** — apply **cluster-provider-config.yaml**; check the Secret exists: `kubectl get secret aws-secret -n crossplane-system`.
+- **Provider unhealthy with `cannot establish control of object`** — a second AWS family provider (usually crossplane-contrib) is installed. See [guide 18](../guides/18_AWS_Family_Contrib_vs_Upbound.md).
+- **Node group fails to create** — check Spot capacity for the instance types in your AZs, and that **routing.yaml** is applied (nodes need internet access to join).
+- **Need more detail** — each resource is reconciled by its service provider (Role → `provider-aws-iam`, Cluster/NodeGroup → `provider-aws-eks`, network → `provider-aws-ec2`). Enable debug logs with **debug-runtime-config.yaml** (instructions in the file).
 
 ## Cleanup
 
-Delete in reverse order (node group → cluster → IAM roles):
+Delete in reverse order so AWS dependencies are released cleanly:
 
 ```bash
 kubectl delete -f nodegroup-spot.yaml
 kubectl delete -f cluster.yaml
-# Wait for cluster deletion to finish, then:
-kubectl delete -f iam-node-role.yaml
-kubectl delete -f iam-cluster-role.yaml
+# wait until the cluster is gone (kubectl get clusters.eks.aws.m.upbound.io -n eks-spot)
+kubectl delete -f iam-node-role.yaml -f iam-cluster-role.yaml
+kubectl delete -f routing.yaml -f subnets.yaml -f vpc.yaml
+kubectl delete -f namespace.yaml
 ```
+
+Keep **cluster-provider-config.yaml** and the providers until every managed resource is deleted — without credentials Crossplane cannot remove the AWS resources.

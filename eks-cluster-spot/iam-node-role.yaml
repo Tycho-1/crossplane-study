@@ -1,18 +1,14 @@
-# EKS node group IAM role (trust ec2.amazonaws.com + EKS worker policies)
-# Required by the EKS NodeGroup. Apply before nodegroup-spot.yaml.
-# Uses iam.aws.m.upbound.io so the Role is managed by the provider that uses aws.m.upbound.io ClusterProviderConfig.
+# EKS node group IAM role (trust ec2.amazonaws.com + EKS worker policies).
+# Referenced by nodegroup-spot.yaml via nodeRoleArnRef. The AWS role name is metadata.name.
 apiVersion: iam.aws.m.upbound.io/v1beta1
 kind: Role
 metadata:
   name: eks-node-role
-  namespace: crossplane-system   # same namespace as provider so it gets reconciled
+  namespace: eks-spot
 spec:
-  providerConfigRef:
-    kind: ClusterProviderConfig
-    name: default
   forProvider:
-    # Role name in AWS is taken from metadata.name (eks-node-role); no forProvider.name in this provider
     description: IAM role for EKS managed node group
+    forceDetachPolicies: true
     assumeRolePolicy: |
       {
         "Version": "2012-10-17",
